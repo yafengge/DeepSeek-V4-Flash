@@ -199,7 +199,7 @@ DeepSeek-V4-Pro and DeepSeek-V4-Flash both support three reasoning effort modes:
 
 ## Chat Template
 
-This release does not include a Jinja-format chat template. Instead, we provide a dedicated `encoding` folder with Python scripts and test cases demonstrating how to encode messages in OpenAI-compatible format into input strings for the model, and how to parse the model's text output. Please refer to the [`encoding`](encoding) folder for full documentation.
+This release does not include a Jinja-format chat template. Instead, we provide a dedicated `encoding` folder with Python scripts and test cases demonstrating how to encode messages in OpenAI-compatible format into input strings for the model, and how to parse the model's text output. Please refer to the [`encoding`](encoding/README.md) folder for full documentation.
 
 A brief example:
 
@@ -223,7 +223,7 @@ tokens = tokenizer.encode(prompt)
 
 ## How to Run Locally
 
-Please refer to the [inference](inference) folder for detailed instructions on running DeepSeek-V4 locally, including model weight conversion and interactive chat demos.
+Please refer to the [inference](inference/README.md) folder for detailed instructions on running DeepSeek-V4 locally, including model weight conversion and interactive chat demos.
 
 For local deployment, we recommend setting the sampling parameters to `temperature = 1.0, top_p = 1.0`. For the Think Max reasoning mode, we recommend setting the context window to at least **384K** tokens.
 
