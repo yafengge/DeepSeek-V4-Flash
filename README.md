@@ -41,7 +41,7 @@ library_name: transformers
 </div>
 
 <p align="center">
-  <a href="DeepSeek_V4.pdf"><b>Technical Report</b>👁️</a>
+  <a href="https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro/blob/main/DeepSeek_V4.pdf"><b>Technical Report</b>👁️</a>
 </p>
 
 ## Introduction
