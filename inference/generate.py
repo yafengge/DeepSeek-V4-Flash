@@ -11,7 +11,7 @@ from safetensors.torch import load_model
 
 from model import Transformer, ModelArgs
 current_dir = os.path.dirname(os.path.abspath(__file__))
-encoding_dir = os.path.join(current_dir, '../encoding_dir')
+encoding_dir = os.path.join(current_dir, '../encoding')
 sys.path.insert(0, os.path.abspath(encoding_dir))
 from encoding_dsv4 import encode_messages, parse_message_from_completion_text
 
