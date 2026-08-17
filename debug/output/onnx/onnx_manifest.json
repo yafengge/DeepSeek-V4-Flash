@@ -1,0 +1,151 @@
+{
+  "model": "DeepSeek-V4-Flash-small-layer21",
+  "world_size": 2,
+  "config": {
+    "layer_id": 21,
+    "vocab_size": 4096,
+    "dim": 256,
+    "moe_inter_dim": 128,
+    "n_heads": 8,
+    "n_routed_experts": 16,
+    "n_shared_experts": 1,
+    "n_activated_experts": 6,
+    "score_func": "sqrtsoftplus",
+    "route_scale": 1.5,
+    "swiglu_limit": 10.0,
+    "q_lora_rank": 128,
+    "head_dim": 128,
+    "rope_head_dim": 64,
+    "norm_eps": 1e-06,
+    "o_groups": 4,
+    "o_lora_rank": 128,
+    "window_size": 128,
+    "compress_ratio": 128,
+    "compress_rope_theta": 160000.0,
+    "original_seq_len": 65536,
+    "rope_factor": 16.0,
+    "beta_fast": 32,
+    "beta_slow": 1,
+    "hc_mult": 4,
+    "hc_sinkhorn_iters": 20,
+    "hc_eps": 1e-06,
+    "max_batch_size": 1,
+    "max_seq_len": 256,
+    "seed": 20260817
+  },
+  "exports": [
+    {
+      "path": "debug/output/onnx/rank0_prefill.onnx",
+      "rank": 0,
+      "phase": "prefill",
+      "sequence_length": 128,
+      "history_length": 0,
+      "node_count": 20,
+      "initializer_count": 55,
+      "initializer_bytes": 9343804,
+      "collectives": [
+        {
+          "name": "embedding.all_reduce",
+          "operation": "AllReduce"
+        },
+        {
+          "name": "block21.attention.output_all_reduce",
+          "operation": "AllReduce"
+        },
+        {
+          "name": "block21.moe.expert_all_reduce",
+          "operation": "AllReduce"
+        },
+        {
+          "name": "lm_head.all_gather",
+          "operation": "AllGather"
+        }
+      ]
+    },
+    {
+      "path": "debug/output/onnx/rank0_decode.onnx",
+      "rank": 0,
+      "phase": "decode",
+      "sequence_length": 1,
+      "history_length": 128,
+      "node_count": 20,
+      "initializer_count": 55,
+      "initializer_bytes": 9343804,
+      "collectives": [
+        {
+          "name": "embedding.all_reduce",
+          "operation": "AllReduce"
+        },
+        {
+          "name": "block21.attention.output_all_reduce",
+          "operation": "AllReduce"
+        },
+        {
+          "name": "block21.moe.expert_all_reduce",
+          "operation": "AllReduce"
+        },
+        {
+          "name": "lm_head.all_gather",
+          "operation": "AllGather"
+        }
+      ]
+    },
+    {
+      "path": "debug/output/onnx/rank1_prefill.onnx",
+      "rank": 1,
+      "phase": "prefill",
+      "sequence_length": 128,
+      "history_length": 0,
+      "node_count": 20,
+      "initializer_count": 55,
+      "initializer_bytes": 9343804,
+      "collectives": [
+        {
+          "name": "embedding.all_reduce",
+          "operation": "AllReduce"
+        },
+        {
+          "name": "block21.attention.output_all_reduce",
+          "operation": "AllReduce"
+        },
+        {
+          "name": "block21.moe.expert_all_reduce",
+          "operation": "AllReduce"
+        },
+        {
+          "name": "lm_head.all_gather",
+          "operation": "AllGather"
+        }
+      ]
+    },
+    {
+      "path": "debug/output/onnx/rank1_decode.onnx",
+      "rank": 1,
+      "phase": "decode",
+      "sequence_length": 1,
+      "history_length": 128,
+      "node_count": 20,
+      "initializer_count": 55,
+      "initializer_bytes": 9343804,
+      "collectives": [
+        {
+          "name": "embedding.all_reduce",
+          "operation": "AllReduce"
+        },
+        {
+          "name": "block21.attention.output_all_reduce",
+          "operation": "AllReduce"
+        },
+        {
+          "name": "block21.moe.expert_all_reduce",
+          "operation": "AllReduce"
+        },
+        {
+          "name": "lm_head.all_gather",
+          "operation": "AllGather"
+        }
+      ]
+    }
+  ],
+  "runtime_note": "Custom ai.deepseek and ai.deepseek.distributed kernels are required for ONNX Runtime execution."
+}

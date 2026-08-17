@@ -1,0 +1,204 @@
+{
+  "model": "DeepSeek-V4-Flash-small-layer21",
+  "config": {
+    "layer_id": 21,
+    "vocab_size": 4096,
+    "dim": 256,
+    "moe_inter_dim": 128,
+    "n_heads": 8,
+    "n_routed_experts": 16,
+    "n_shared_experts": 1,
+    "n_activated_experts": 6,
+    "score_func": "sqrtsoftplus",
+    "route_scale": 1.5,
+    "swiglu_limit": 10.0,
+    "q_lora_rank": 128,
+    "head_dim": 128,
+    "rope_head_dim": 64,
+    "norm_eps": 1e-06,
+    "o_groups": 4,
+    "o_lora_rank": 128,
+    "window_size": 128,
+    "compress_ratio": 128,
+    "compress_rope_theta": 160000.0,
+    "original_seq_len": 65536,
+    "rope_factor": 16.0,
+    "beta_fast": 32,
+    "beta_slow": 1,
+    "hc_mult": 4,
+    "hc_sinkhorn_iters": 20,
+    "hc_eps": 1e-06,
+    "max_batch_size": 1,
+    "max_seq_len": 256,
+    "seed": 20260817
+  },
+  "run": {
+    "mode": "prefill",
+    "sequence_length": 8,
+    "decode_steps": 2,
+    "world_size": 2,
+    "output_shape": [
+      1,
+      4096
+    ],
+    "compressed_kv_count": 0,
+    "rank_max_abs_error": 0.0,
+    "tp1_max_abs_error": 2.980232238769531e-07
+  },
+  "ranks": [
+    {
+      "rank": 0,
+      "collectives": [
+        {
+          "index": 0,
+          "rank": 0,
+          "name": "embedding_vocab_parallel",
+          "operation": "all_reduce",
+          "input_shape": [
+            1,
+            8,
+            256
+          ],
+          "output_shape": [
+            1,
+            8,
+            256
+          ],
+          "dtype": "float32",
+          "payload_bytes": 8192,
+          "elapsed_ms": 0.8765319998929044
+        },
+        {
+          "index": 1,
+          "rank": 0,
+          "name": "block21_attention_output",
+          "operation": "all_reduce",
+          "input_shape": [
+            1,
+            8,
+            256
+          ],
+          "output_shape": [
+            1,
+            8,
+            256
+          ],
+          "dtype": "float32",
+          "payload_bytes": 8192,
+          "elapsed_ms": 0.41109599987976253
+        },
+        {
+          "index": 2,
+          "rank": 0,
+          "name": "block21_routed_experts",
+          "operation": "all_reduce",
+          "input_shape": [
+            8,
+            256
+          ],
+          "output_shape": [
+            8,
+            256
+          ],
+          "dtype": "float32",
+          "payload_bytes": 8192,
+          "elapsed_ms": 0.834166999993613
+        },
+        {
+          "index": 3,
+          "rank": 0,
+          "name": "lm_head_vocab_parallel",
+          "operation": "all_gather",
+          "input_shape": [
+            1,
+            2048
+          ],
+          "output_shape": [
+            1,
+            4096
+          ],
+          "dtype": "float32",
+          "payload_bytes": 8192,
+          "elapsed_ms": 0.6940830007806653
+        }
+      ]
+    },
+    {
+      "rank": 1,
+      "collectives": [
+        {
+          "index": 0,
+          "rank": 1,
+          "name": "embedding_vocab_parallel",
+          "operation": "all_reduce",
+          "input_shape": [
+            1,
+            8,
+            256
+          ],
+          "output_shape": [
+            1,
+            8,
+            256
+          ],
+          "dtype": "float32",
+          "payload_bytes": 8192,
+          "elapsed_ms": 0.7351530002779327
+        },
+        {
+          "index": 1,
+          "rank": 1,
+          "name": "block21_attention_output",
+          "operation": "all_reduce",
+          "input_shape": [
+            1,
+            8,
+            256
+          ],
+          "output_shape": [
+            1,
+            8,
+            256
+          ],
+          "dtype": "float32",
+          "payload_bytes": 8192,
+          "elapsed_ms": 0.4291949990147259
+        },
+        {
+          "index": 2,
+          "rank": 1,
+          "name": "block21_routed_experts",
+          "operation": "all_reduce",
+          "input_shape": [
+            8,
+            256
+          ],
+          "output_shape": [
+            8,
+            256
+          ],
+          "dtype": "float32",
+          "payload_bytes": 8192,
+          "elapsed_ms": 0.9881509995466331
+        },
+        {
+          "index": 3,
+          "rank": 1,
+          "name": "lm_head_vocab_parallel",
+          "operation": "all_gather",
+          "input_shape": [
+            1,
+            2048
+          ],
+          "output_shape": [
+            1,
+            4096
+          ],
+          "dtype": "float32",
+          "payload_bytes": 8192,
+          "elapsed_ms": 0.5798220008728094
+        }
+      ]
+    }
+  ]
+}

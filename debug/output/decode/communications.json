@@ -1,0 +1,492 @@
+{
+  "model": "DeepSeek-V4-Flash-small-layer21",
+  "config": {
+    "layer_id": 21,
+    "vocab_size": 4096,
+    "dim": 256,
+    "moe_inter_dim": 128,
+    "n_heads": 8,
+    "n_routed_experts": 16,
+    "n_shared_experts": 1,
+    "n_activated_experts": 6,
+    "score_func": "sqrtsoftplus",
+    "route_scale": 1.5,
+    "swiglu_limit": 10.0,
+    "q_lora_rank": 128,
+    "head_dim": 128,
+    "rope_head_dim": 64,
+    "norm_eps": 1e-06,
+    "o_groups": 4,
+    "o_lora_rank": 128,
+    "window_size": 128,
+    "compress_ratio": 128,
+    "compress_rope_theta": 160000.0,
+    "original_seq_len": 65536,
+    "rope_factor": 16.0,
+    "beta_fast": 32,
+    "beta_slow": 1,
+    "hc_mult": 4,
+    "hc_sinkhorn_iters": 20,
+    "hc_eps": 1e-06,
+    "max_batch_size": 1,
+    "max_seq_len": 256,
+    "seed": 20260817
+  },
+  "run": {
+    "mode": "prefill-decode",
+    "sequence_length": 127,
+    "decode_steps": 2,
+    "world_size": 2,
+    "output_shape": [
+      1,
+      4096
+    ],
+    "compressed_kv_count": 1,
+    "rank_max_abs_error": 0.0,
+    "tp1_max_abs_error": 7.450580596923828e-07
+  },
+  "ranks": [
+    {
+      "rank": 0,
+      "collectives": [
+        {
+          "index": 0,
+          "rank": 0,
+          "name": "embedding_vocab_parallel",
+          "operation": "all_reduce",
+          "input_shape": [
+            1,
+            127,
+            256
+          ],
+          "output_shape": [
+            1,
+            127,
+            256
+          ],
+          "dtype": "float32",
+          "payload_bytes": 130048,
+          "elapsed_ms": 0.7817360001354245
+        },
+        {
+          "index": 1,
+          "rank": 0,
+          "name": "block21_attention_output",
+          "operation": "all_reduce",
+          "input_shape": [
+            1,
+            127,
+            256
+          ],
+          "output_shape": [
+            1,
+            127,
+            256
+          ],
+          "dtype": "float32",
+          "payload_bytes": 130048,
+          "elapsed_ms": 0.666315001581097
+        },
+        {
+          "index": 2,
+          "rank": 0,
+          "name": "block21_routed_experts",
+          "operation": "all_reduce",
+          "input_shape": [
+            127,
+            256
+          ],
+          "output_shape": [
+            127,
+            256
+          ],
+          "dtype": "float32",
+          "payload_bytes": 130048,
+          "elapsed_ms": 0.7354369990935083
+        },
+        {
+          "index": 3,
+          "rank": 0,
+          "name": "lm_head_vocab_parallel",
+          "operation": "all_gather",
+          "input_shape": [
+            1,
+            2048
+          ],
+          "output_shape": [
+            1,
+            4096
+          ],
+          "dtype": "float32",
+          "payload_bytes": 8192,
+          "elapsed_ms": 0.378171000193106
+        },
+        {
+          "index": 4,
+          "rank": 0,
+          "name": "embedding_vocab_parallel",
+          "operation": "all_reduce",
+          "input_shape": [
+            1,
+            1,
+            256
+          ],
+          "output_shape": [
+            1,
+            1,
+            256
+          ],
+          "dtype": "float32",
+          "payload_bytes": 1024,
+          "elapsed_ms": 0.2659719993971521
+        },
+        {
+          "index": 5,
+          "rank": 0,
+          "name": "block21_attention_output",
+          "operation": "all_reduce",
+          "input_shape": [
+            1,
+            1,
+            256
+          ],
+          "output_shape": [
+            1,
+            1,
+            256
+          ],
+          "dtype": "float32",
+          "payload_bytes": 1024,
+          "elapsed_ms": 0.41344100100104697
+        },
+        {
+          "index": 6,
+          "rank": 0,
+          "name": "block21_routed_experts",
+          "operation": "all_reduce",
+          "input_shape": [
+            1,
+            256
+          ],
+          "output_shape": [
+            1,
+            256
+          ],
+          "dtype": "float32",
+          "payload_bytes": 1024,
+          "elapsed_ms": 0.41938899994420353
+        },
+        {
+          "index": 7,
+          "rank": 0,
+          "name": "lm_head_vocab_parallel",
+          "operation": "all_gather",
+          "input_shape": [
+            1,
+            2048
+          ],
+          "output_shape": [
+            1,
+            4096
+          ],
+          "dtype": "float32",
+          "payload_bytes": 8192,
+          "elapsed_ms": 0.3432949997659307
+        },
+        {
+          "index": 8,
+          "rank": 0,
+          "name": "embedding_vocab_parallel",
+          "operation": "all_reduce",
+          "input_shape": [
+            1,
+            1,
+            256
+          ],
+          "output_shape": [
+            1,
+            1,
+            256
+          ],
+          "dtype": "float32",
+          "payload_bytes": 1024,
+          "elapsed_ms": 0.35210399983043317
+        },
+        {
+          "index": 9,
+          "rank": 0,
+          "name": "block21_attention_output",
+          "operation": "all_reduce",
+          "input_shape": [
+            1,
+            1,
+            256
+          ],
+          "output_shape": [
+            1,
+            1,
+            256
+          ],
+          "dtype": "float32",
+          "payload_bytes": 1024,
+          "elapsed_ms": 0.3079840007558232
+        },
+        {
+          "index": 10,
+          "rank": 0,
+          "name": "block21_routed_experts",
+          "operation": "all_reduce",
+          "input_shape": [
+            1,
+            256
+          ],
+          "output_shape": [
+            1,
+            256
+          ],
+          "dtype": "float32",
+          "payload_bytes": 1024,
+          "elapsed_ms": 0.5548690005525714
+        },
+        {
+          "index": 11,
+          "rank": 0,
+          "name": "lm_head_vocab_parallel",
+          "operation": "all_gather",
+          "input_shape": [
+            1,
+            2048
+          ],
+          "output_shape": [
+            1,
+            4096
+          ],
+          "dtype": "float32",
+          "payload_bytes": 8192,
+          "elapsed_ms": 0.5069070011813892
+        }
+      ]
+    },
+    {
+      "rank": 1,
+      "collectives": [
+        {
+          "index": 0,
+          "rank": 1,
+          "name": "embedding_vocab_parallel",
+          "operation": "all_reduce",
+          "input_shape": [
+            1,
+            127,
+            256
+          ],
+          "output_shape": [
+            1,
+            127,
+            256
+          ],
+          "dtype": "float32",
+          "payload_bytes": 130048,
+          "elapsed_ms": 0.7477829985873541
+        },
+        {
+          "index": 1,
+          "rank": 1,
+          "name": "block21_attention_output",
+          "operation": "all_reduce",
+          "input_shape": [
+            1,
+            127,
+            256
+          ],
+          "output_shape": [
+            1,
+            127,
+            256
+          ],
+          "dtype": "float32",
+          "payload_bytes": 130048,
+          "elapsed_ms": 0.6302620004134951
+        },
+        {
+          "index": 2,
+          "rank": 1,
+          "name": "block21_routed_experts",
+          "operation": "all_reduce",
+          "input_shape": [
+            127,
+            256
+          ],
+          "output_shape": [
+            127,
+            256
+          ],
+          "dtype": "float32",
+          "payload_bytes": 130048,
+          "elapsed_ms": 0.5282649999571731
+        },
+        {
+          "index": 3,
+          "rank": 1,
+          "name": "lm_head_vocab_parallel",
+          "operation": "all_gather",
+          "input_shape": [
+            1,
+            2048
+          ],
+          "output_shape": [
+            1,
+            4096
+          ],
+          "dtype": "float32",
+          "payload_bytes": 8192,
+          "elapsed_ms": 0.4286319999664556
+        },
+        {
+          "index": 4,
+          "rank": 1,
+          "name": "embedding_vocab_parallel",
+          "operation": "all_reduce",
+          "input_shape": [
+            1,
+            1,
+            256
+          ],
+          "output_shape": [
+            1,
+            1,
+            256
+          ],
+          "dtype": "float32",
+          "payload_bytes": 1024,
+          "elapsed_ms": 0.26769099895318504
+        },
+        {
+          "index": 5,
+          "rank": 1,
+          "name": "block21_attention_output",
+          "operation": "all_reduce",
+          "input_shape": [
+            1,
+            1,
+            256
+          ],
+          "output_shape": [
+            1,
+            1,
+            256
+          ],
+          "dtype": "float32",
+          "payload_bytes": 1024,
+          "elapsed_ms": 0.43004100007237867
+        },
+        {
+          "index": 6,
+          "rank": 1,
+          "name": "block21_routed_experts",
+          "operation": "all_reduce",
+          "input_shape": [
+            1,
+            256
+          ],
+          "output_shape": [
+            1,
+            256
+          ],
+          "dtype": "float32",
+          "payload_bytes": 1024,
+          "elapsed_ms": 0.3329190003569238
+        },
+        {
+          "index": 7,
+          "rank": 1,
+          "name": "lm_head_vocab_parallel",
+          "operation": "all_gather",
+          "input_shape": [
+            1,
+            2048
+          ],
+          "output_shape": [
+            1,
+            4096
+          ],
+          "dtype": "float32",
+          "payload_bytes": 8192,
+          "elapsed_ms": 0.2679410008568084
+        },
+        {
+          "index": 8,
+          "rank": 1,
+          "name": "embedding_vocab_parallel",
+          "operation": "all_reduce",
+          "input_shape": [
+            1,
+            1,
+            256
+          ],
+          "output_shape": [
+            1,
+            1,
+            256
+          ],
+          "dtype": "float32",
+          "payload_bytes": 1024,
+          "elapsed_ms": 0.2690350011107512
+        },
+        {
+          "index": 9,
+          "rank": 1,
+          "name": "block21_attention_output",
+          "operation": "all_reduce",
+          "input_shape": [
+            1,
+            1,
+            256
+          ],
+          "output_shape": [
+            1,
+            1,
+            256
+          ],
+          "dtype": "float32",
+          "payload_bytes": 1024,
+          "elapsed_ms": 0.4495799985306803
+        },
+        {
+          "index": 10,
+          "rank": 1,
+          "name": "block21_routed_experts",
+          "operation": "all_reduce",
+          "input_shape": [
+            1,
+            256
+          ],
+          "output_shape": [
+            1,
+            256
+          ],
+          "dtype": "float32",
+          "payload_bytes": 1024,
+          "elapsed_ms": 0.40021200038609095
+        },
+        {
+          "index": 11,
+          "rank": 1,
+          "name": "lm_head_vocab_parallel",
+          "operation": "all_gather",
+          "input_shape": [
+            1,
+            2048
+          ],
+          "output_shape": [
+            1,
+            4096
+          ],
+          "dtype": "float32",
+          "payload_bytes": 8192,
+          "elapsed_ms": 0.6699300010950537
+        }
+      ]
+    }
+  ]
+}
