@@ -1,34 +1,33 @@
-# DeepSeek V4 Flash TP1 Baseline
+# DeepSeek V4 Flash TP1 / TP8 推理基准
 
-## Assumptions
+## 假设
 
-- TP: `1`
-- Prefill: batch `1`, sequence `8192`
-- Decode: batch `1`, tokens `1`, context `1048576`
-- Layers: `43` = window `2` + short `21` + long `20`
-- MAC = 2 FLOPs; MTP excluded.
+- TP 配置：`1` 与 `8`
+- Prefill：Batch `1`，Sequence `8192`
+- Decode：Batch `1`，Tokens `1`，Context `1048576`
+- 层数：`43` = window `2` + short `21` + long `20`
+- MAC = 2 FLOPs；仅推理，不含 MTP/训练算子。
 
-## Compute and HBM
+## 每 Rank 计算量与 HBM
 
-| Metric | Prefill 8K | Decode 1M |
+| 指标 | Prefill TP1 | Prefill TP8/rank | Decode TP1 | Decode TP8/rank |
+|---|---:|---:|---:|---:|
+| Attention FLOPs | 102.836 TFLOPs | 23.172 TFLOPs | 0.124 TFLOPs | 0.019 TFLOPs |
+| MoE FLOPs | 124.846 TFLOPs | 31.766 TFLOPs | 0.015 TFLOPs | 0.004 TFLOPs |
+| 总 FLOPs | 228.384 TFLOPs | 55.639 TFLOPs | 0.140 TFLOPs | 0.024 TFLOPs |
+| Attention HBM | 358.038 GB | 231.532 GB | 10.492 GB | 4.035 GB |
+| MoE HBM | 191.989 GB | 32.915 GB | 4.627 GB | 1.605 GB |
+| Other HBM | 94.596 GB | 92.742 GB | 2.265 GB | 0.411 GB |
+
+## 每 Rank 容量
+
+| 指标 | TP1 | TP8/rank |
 |---|---:|---:|
-| Attention major FLOPs/rank | 102.836 TFLOPs | 0.124 TFLOPs |
-| MoE major FLOPs/rank | 124.846 TFLOPs | 0.015 TFLOPs |
-| Total modeled FLOPs/rank | 228.384 TFLOPs | 0.140 TFLOPs |
-| Attention HBM traffic/rank | 358.038 GB | 10.492 GB |
-| MoE HBM traffic/rank | 191.989 GB | 4.627 GB |
-| Other HBM traffic/rank | 94.596 GB | 2.265 GB |
-| HBM read/rank | 493.459 GB | 16.642 GB |
-| HBM write/rank | 151.163 GB | 0.743 GB |
+| Attention 参数容量 | 7.451 GB | 2.238 GB |
+| MoE 参数容量 | 148.351 GB | 19.578 GB |
+| Other 参数容量 | 3.314 GB | 0.534 GB |
+| 参数总容量 | 159.117 GB | 22.350 GB |
+| Decode 1M KV + State | 7.232 GB | 7.232 GB |
+| Decode 总驻留容量 | 166.349 GB | 29.582 GB |
 
-## Capacity
-
-| Metric | Capacity |
-|---|---:|
-| Parameters/rank | 159.117 GB |
-| Prefill effective KV + states | 0.074 GB |
-| Prefill preallocated KV + states | 7.232 GB |
-| Decode effective KV + states | 7.232 GB |
-| Decode preallocated KV + states | 7.232 GB |
-
-The Excel workbook is authoritative for architecture exploration: all detail rows contain formulas and recalculate after input edits.
+Excel 工作簿是架构探索的主要产物：修改 TP、Batch、Hidden Size、专家数或层模式后会自动重算。

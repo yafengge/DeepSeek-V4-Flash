@@ -1,32 +1,33 @@
-# DeepSeek V4 Flash Architecture Calculator
+# DeepSeek V4 Flash 推理架构计算器
 
-Generate the formula-driven Excel workbook:
+生成公式驱动的 Excel 工作簿：
 
 ```bash
 $HOME/.local/bin/micromamba run -n deepseek-onnx \
   python calculate/generate_calculator.py
 ```
 
-Outputs:
+输出文件：
 
-- `deepseek_v4_flash_calculator.xlsx`: editable architecture calculator.
-- `baseline_results.json`: machine-readable baseline values.
-- `baseline_report.md`: concise TP1 comparison report.
+- `deepseek_v4_flash_calculator.xlsx`：可编辑的推理架构计算器。
+- `baseline_results.json`：TP1/TP8 基准数据。
+- `baseline_report.md`：中文汇总报告。
 
-Workbook sheets:
+工作表：
 
-- `Parameters`: editable TP, Prefill/Decode batch sizes, model dimensions,
-  expert counts, cache settings, dtypes, and hardware assumptions.
-- `Layer_Config`: editable per-layer mode (`window`, `short`, or `long`).
-- `Prefill_8K`: formula rows for Batch-1, 8192-token prefill by default.
-- `Decode_1M`: formula rows for Batch-1, one-token decode at 1M context.
-- `Memory`: per-rank weights, effective/preallocated KV cache, and states.
-- `Comparison`: FLOPs, HBM distribution, capacity, and charts.
-- `Methodology`: calculation boundaries and limitations.
+- `Parameters`：可调整 TP1/TP8、Prefill/Decode Batch、Hidden Size、
+  Head、专家数、Cache、dtype 和硬件参数。
+- `Layer_Config`：逐层调整 `window`、`short`、`long` 模式。
+- `Prefill_8K`：TP1/TP8 每 Rank Prefill 计算与 HBM 明细。
+- `Decode_1M`：TP1/TP8 每 Rank Decode 计算与 HBM 明细。
+- `Memory`：逻辑参数量、量化后参数容量、KV/State 与逐 Rank 容量。
+- `Summary`：面向每 Rank 硬件配置的算力、带宽和容量总览。
+- `Comparison`：无科学计数法的 TP1/TP8 对比图。
+- `Methodology`：中文统计口径与限制。
 
-Blue cells are editable. Green and result cells contain Excel formulas. The
-workbook recalculates when opened, so changing TP, either batch size, hidden
-size, heads, expert counts, sequence lengths, or layer modes updates all sheets.
+蓝色单元格是输入项，绿色及结果单元格由 Excel 公式计算。打开工作簿时会完整
+重算，因此修改 TP、Batch、Hidden Size、Head、专家数、序列长度或层模式后，
+所有推理结果都会更新。
 
-The report is a static architecture model, not measured runtime. HBM traffic is
-logical read/write volume and does not model cache reuse or kernel fusion.
+本计算器只考虑推理，不包含反向传播、梯度、优化器或训练状态。HBM 数据是逻辑
+读写量，不模拟 Cache 命中、Kernel 融合或实测运行时间。
