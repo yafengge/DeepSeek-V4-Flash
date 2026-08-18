@@ -2977,7 +2977,7 @@ class InferenceComparisonWriter(CalculatorWriter):
         ws.write_row(
             21,
             0,
-            ["推理场景容量项", "TP1 单 Rank GB", "TP8 单 Rank GB"],
+            ["单 Rank 容量项", "TP1 单 Rank GB", "TP8 单 Rank GB"],
             self.formats["header"],
         )
         capacity_rows = (
@@ -2988,28 +2988,16 @@ class InferenceComparisonWriter(CalculatorWriter):
                 "parameter",
             ),
             (
-                "Prefill 预分配 KV+State",
+                "预分配 KV+State（Prefill/Decode 当前相同）",
                 memory["prefill_allocated_cache"],
                 memory["prefill_allocated_cache"],
                 "prefill_kv",
             ),
             (
-                "Prefill 总驻留（参数+KV）",
+                "总驻留（静态参数+KV+State）",
                 memory["tp1_parameter_total"] + memory["prefill_allocated_cache"],
                 memory["tp8_parameter_total"] + memory["prefill_allocated_cache"],
                 "prefill_total",
-            ),
-            (
-                "Decode 预分配 KV+State",
-                memory["decode_allocated_cache"],
-                memory["decode_allocated_cache"],
-                "decode_kv",
-            ),
-            (
-                "Decode 总驻留（参数+KV）",
-                memory["tp1_parameter_total"] + memory["decode_allocated_cache"],
-                memory["tp8_parameter_total"] + memory["decode_allocated_cache"],
-                "decode_total",
             ),
         )
         for offset, (label, value1, value8, value_type) in enumerate(capacity_rows):
@@ -3118,9 +3106,9 @@ class InferenceComparisonWriter(CalculatorWriter):
             "GB",
         )
         add_chart(
-            "Prefill / Decode 单 Rank 容量（TP 配置独立）",
+            "TP1 vs TP8：单 Rank 推理驻留容量",
             "J87",
-            (22, 26),
+            (22, 24),
             [("TP1 单 Rank", 1), ("TP8 单 Rank", 2)],
             "GB",
         )
