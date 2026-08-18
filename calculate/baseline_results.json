@@ -1,0 +1,143 @@
+{
+  "model": "DeepSeek-V4-Flash",
+  "scope": "main 43-layer inference path; MTP excluded",
+  "inputs": {
+    "tp": 1,
+    "prefill_batch": 1,
+    "prefill_sequence": 8192,
+    "decode_batch": 1,
+    "decode_tokens": 1,
+    "decode_context": 1048576,
+    "max_context": 1048576,
+    "hidden": 4096,
+    "vocab": 129280,
+    "heads": 64,
+    "head_dim": 512,
+    "rope_dim": 64,
+    "q_rank": 1024,
+    "o_groups": 8,
+    "o_rank": 1024,
+    "routed_experts": 256,
+    "activated_experts": 6,
+    "shared_experts": 1,
+    "expert_inter": 2048,
+    "window": 128,
+    "short_ratio": 4,
+    "long_ratio": 128,
+    "index_heads": 64,
+    "index_dim": 128,
+    "index_topk": 512,
+    "hc_slots": 4,
+    "hc_iters": 20,
+    "hash_layers": 3,
+    "bf16_bytes": 2,
+    "fp32_bytes": 4,
+    "fp8_bytes": 1,
+    "fp4_bytes": 0.5,
+    "scale_bytes": 1,
+    "int32_bytes": 4,
+    "int64_bytes": 8,
+    "fp8_block": 128,
+    "fp4_block": 32,
+    "kernel_min_heads": 16,
+    "peak_tflops": 1000,
+    "hbm_gbps": 3000,
+    "interconnect_gbps": 900,
+    "prefill_target_ms": 1000,
+    "decode_target_ms": 10
+  },
+  "layer_counts": {
+    "total": 43,
+    "window": 2,
+    "short": 21,
+    "long": 20,
+    "hash": 3
+  },
+  "prefill_8k": {
+    "categories": {
+      "Attention": {
+        "global_flops": 102836037746688,
+        "per_rank_flops": 102836037746688.0,
+        "hbm_read_bytes_per_rank": 273606909056.0,
+        "hbm_write_bytes_per_rank": 84430905344.0,
+        "interconnect_bytes_per_rank": 0
+      },
+      "Communication": {
+        "global_flops": 0,
+        "per_rank_flops": 0,
+        "hbm_read_bytes_per_rank": 0,
+        "hbm_write_bytes_per_rank": 0,
+        "interconnect_bytes_per_rank": 0.0
+      },
+      "MoE": {
+        "global_flops": 124846109360128,
+        "per_rank_flops": 124846109360128.0,
+        "hbm_read_bytes_per_rank": 171428192768.0,
+        "hbm_write_bytes_per_rank": 20560478208.0,
+        "interconnect_bytes_per_rank": 0
+      },
+      "Other": {
+        "global_flops": 702280286208,
+        "per_rank_flops": 702280286208.0,
+        "hbm_read_bytes_per_rank": 48424313928.0,
+        "hbm_write_bytes_per_rank": 46171415552.0,
+        "interconnect_bytes_per_rank": 0
+      }
+    },
+    "total_global_flops": 228384427393024,
+    "total_per_rank_flops": 228384427393024.0,
+    "total_hbm_read_bytes_per_rank": 493459415752.0,
+    "total_hbm_write_bytes_per_rank": 151162799104.0,
+    "total_interconnect_bytes_per_rank": 0.0,
+    "attention_major_flops_per_rank": 102836037746688.0,
+    "moe_major_flops_per_rank": 124846109360128.0
+  },
+  "decode_1m": {
+    "categories": {
+      "Attention": {
+        "global_flops": 123969470464,
+        "per_rank_flops": 123969470464.0,
+        "hbm_read_bytes_per_rank": 9758096512.0,
+        "hbm_write_bytes_per_rank": 734131840.0,
+        "interconnect_bytes_per_rank": 0
+      },
+      "Communication": {
+        "global_flops": 0,
+        "per_rank_flops": 0,
+        "hbm_read_bytes_per_rank": 0,
+        "hbm_write_bytes_per_rank": 0,
+        "interconnect_bytes_per_rank": 0.0
+      },
+      "MoE": {
+        "global_flops": 15240003584,
+        "per_rank_flops": 15240003584.0,
+        "hbm_read_bytes_per_rank": 4624523848.0,
+        "hbm_write_bytes_per_rank": 2509824.0,
+        "interconnect_bytes_per_rank": 0
+      },
+      "Other": {
+        "global_flops": 1144660054,
+        "per_rank_flops": 1144660054.0,
+        "hbm_read_bytes_per_rank": 2259051592.0,
+        "hbm_write_bytes_per_rank": 6153216.0,
+        "interconnect_bytes_per_rank": 0
+      }
+    },
+    "total_global_flops": 140354134102,
+    "total_per_rank_flops": 140354134102.0,
+    "total_hbm_read_bytes_per_rank": 16641671952.0,
+    "total_hbm_write_bytes_per_rank": 742794880.0,
+    "total_interconnect_bytes_per_rank": 0.0,
+    "attention_major_flops_per_rank": 123969470464.0,
+    "moe_major_flops_per_rank": 15240003584.0
+  },
+  "memory": {
+    "parameter_total": 159117270492.0,
+    "prefill_effective_cache": 74203136,
+    "prefill_allocated_cache": 7232045056,
+    "decode_effective_cache": 7232045056,
+    "decode_allocated_cache": 7232045056,
+    "prefill_transient": 536870912,
+    "decode_transient": 65536
+  }
+}
