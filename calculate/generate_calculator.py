@@ -3033,8 +3033,55 @@ class InferenceComparisonWriter(CalculatorWriter):
             else:
                 formula1 = f"{parameter1}+{decode_kv1}"
                 formula8 = f"{parameter8}+{decode_kv8}"
-            ws.write_formula(row, 1, f"={formula1}/1E9", self.formats["number"], value1 / 1e9)
-            ws.write_formula(row, 2, f"={formula8}/1E9", self.formats["number"], value8 / 1e9)
+            ws.write_formula(row, 1, f"=({formula1})/1E9", self.formats["number"], value1 / 1e9)
+            ws.write_formula(row, 2, f"=({formula8})/1E9", self.formats["number"], value8 / 1e9)
+
+        ws.write_row(
+            29,
+            0,
+            ["算力需求场景", "所需 TFLOP/s"],
+            self.formats["header"],
+        )
+        compute_requirements = (
+            (
+                "Prefill TP1/rank",
+                self.scenario_refs[("PF", "TP1", "Required compute at target")],
+                pf1["total_per_rank_flops"]
+                / (self.p.prefill_target_ms / 1000)
+                / 1e12,
+            ),
+            (
+                "Prefill TP8/rank",
+                self.scenario_refs[("PF", "TP8", "Required compute at target")],
+                pf8["total_per_rank_flops"]
+                / (self.p.prefill_target_ms / 1000)
+                / 1e12,
+            ),
+            (
+                "Decode TP1/rank",
+                self.scenario_refs[("DC", "TP1", "Required compute at target")],
+                dc1["total_per_rank_flops"]
+                / (self.p.decode_target_ms / 1000)
+                / 1e12,
+            ),
+            (
+                "Decode TP8/rank",
+                self.scenario_refs[("DC", "TP8", "Required compute at target")],
+                dc8["total_per_rank_flops"]
+                / (self.p.decode_target_ms / 1000)
+                / 1e12,
+            ),
+        )
+        for offset, (label, reference, value) in enumerate(compute_requirements):
+            row = 30 + offset
+            ws.write(row, 0, label, self.formats["text"])
+            ws.write_formula(
+                row,
+                1,
+                f"={reference}",
+                self.formats["number"],
+                value,
+            )
 
         def add_chart(title: str, anchor: str, categories: tuple[int, int], series: list[tuple[str, int]], y_name: str) -> None:
             chart = self.workbook.add_chart({"type": "column"})
@@ -3052,20 +3099,27 @@ class InferenceComparisonWriter(CalculatorWriter):
             chart.set_style(10)
             ws.insert_chart(anchor, chart, {"x_scale": 1.28, "y_scale": 1.15})
 
-        add_chart("Prefill 每 Rank 计算量", "G3", (4, 6), [("TP1", 1), ("TP8", 2)], "TFLOPs")
-        add_chart("Decode 每 Rank 计算量", "N3", (4, 6), [("TP1", 3), ("TP8", 4)], "GFLOPs")
-        add_chart("Prefill 每 Rank HBM 流量", "G20", (10, 12), [("TP1", 1), ("TP8", 2)], "GB")
-        add_chart("Decode 每 Rank HBM 流量", "N20", (10, 12), [("TP1", 3), ("TP8", 4)], "GB")
+        add_chart(
+            "目标时延所需总算力/单 Rank",
+            "A36",
+            (30, 33),
+            [("所需 TFLOP/s", 1)],
+            "TFLOP/s",
+        )
+        add_chart("Prefill 每 Rank 计算量", "A53", (4, 6), [("TP1", 1), ("TP8", 2)], "TFLOPs")
+        add_chart("Decode 每 Rank 计算量", "J53", (4, 6), [("TP1", 3), ("TP8", 4)], "GFLOPs")
+        add_chart("Prefill 每 Rank HBM 流量", "A70", (10, 12), [("TP1", 1), ("TP8", 2)], "GB")
+        add_chart("Decode 每 Rank HBM 流量", "J70", (10, 12), [("TP1", 3), ("TP8", 4)], "GB")
         add_chart(
             "静态参数容量/单 Rank（Prefill/Decode 共用）",
-            "G37",
+            "A87",
             (16, 18),
             [("TP1 单 Rank", 1), ("TP8 单 Rank", 2)],
             "GB",
         )
         add_chart(
             "Prefill / Decode 单 Rank 容量（TP 配置独立）",
-            "N37",
+            "J87",
             (22, 26),
             [("TP1 单 Rank", 1), ("TP8 单 Rank", 2)],
             "GB",
@@ -3657,8 +3711,8 @@ def validate_baseline(
             for name in archive.namelist()
             if name.startswith("xl/charts/chart")
         ]
-        if len(chart_payloads) < 6:
-            raise AssertionError("Expected six readable comparison charts")
+        if len(chart_payloads) < 7:
+            raise AssertionError("Expected seven readable comparison charts")
         if any(b"logBase" in payload or b"0.000E" in payload for payload in chart_payloads):
             raise AssertionError("Charts must not use log axes or scientific formats")
         workbook_root = ET.fromstring(workbook_xml)
