@@ -2950,7 +2950,16 @@ class InferenceComparisonWriter(CalculatorWriter):
             for col, (ref, value) in enumerate(zip(refs, values), start=1):
                 ws.write_formula(row, col, f"={ref}/1E9", self.formats["number"], value)
 
-        ws.write_row(15, 0, ["大类", "TP1 参数 GB/rank", "TP8 参数 GB/rank"], self.formats["header"])
+        ws.write_row(
+            15,
+            0,
+            [
+                "静态参数大类（Prefill/Decode 共用）",
+                "TP1 单 Rank GB",
+                "TP8 单 Rank GB",
+            ],
+            self.formats["header"],
+        )
         for offset, category in enumerate(("Attention", "MoE", "Other")):
             row = 16 + offset
             ws.write(row, 0, category, self.formats["text"])
@@ -2959,16 +2968,71 @@ class InferenceComparisonWriter(CalculatorWriter):
                 value = memory[f"{label.lower()}_{category.lower()}_parameter"] / 1e9
                 ws.write_formula(row, col, f"={ref}/1E9", self.formats["number"], value)
 
-        ws.write_row(21, 0, ["容量项", "TP1 GB/rank", "TP8 GB/rank"], self.formats["header"])
-        capacity_rows = (
-            ("参数", memory["tp1_parameter_total"], memory["tp8_parameter_total"]),
-            ("Decode KV+State", memory["decode_allocated_cache"], memory["decode_allocated_cache"]),
+        ws.write(
+            19,
+            0,
+            "说明：参数容量只由模型结构、dtype 和 TP 分片决定，与 Prefill/Decode 场景无关；两列分别是单 Rank 值，不相加。",
+            self.formats["note"],
         )
-        for offset, (label, value1, value8) in enumerate(capacity_rows):
+        ws.write_row(
+            21,
+            0,
+            ["推理场景容量项", "TP1 单 Rank GB", "TP8 单 Rank GB"],
+            self.formats["header"],
+        )
+        capacity_rows = (
+            (
+                "静态参数（场景共用）",
+                memory["tp1_parameter_total"],
+                memory["tp8_parameter_total"],
+                "parameter",
+            ),
+            (
+                "Prefill 预分配 KV+State",
+                memory["prefill_allocated_cache"],
+                memory["prefill_allocated_cache"],
+                "prefill_kv",
+            ),
+            (
+                "Prefill 总驻留（参数+KV）",
+                memory["tp1_parameter_total"] + memory["prefill_allocated_cache"],
+                memory["tp8_parameter_total"] + memory["prefill_allocated_cache"],
+                "prefill_total",
+            ),
+            (
+                "Decode 预分配 KV+State",
+                memory["decode_allocated_cache"],
+                memory["decode_allocated_cache"],
+                "decode_kv",
+            ),
+            (
+                "Decode 总驻留（参数+KV）",
+                memory["tp1_parameter_total"] + memory["decode_allocated_cache"],
+                memory["tp8_parameter_total"] + memory["decode_allocated_cache"],
+                "decode_total",
+            ),
+        )
+        for offset, (label, value1, value8, value_type) in enumerate(capacity_rows):
             row = 22 + offset
             ws.write(row, 0, label, self.formats["text"])
-            formula1 = self.memory_refs[("TP1", "Total Parameter Capacity")] if label == "参数" else self.memory_refs[("TP1", "Decode preallocated KV + states")]
-            formula8 = self.memory_refs[("TP8", "Total Parameter Capacity")] if label == "参数" else self.memory_refs[("TP8", "Decode preallocated KV + states")]
+            parameter1 = self.memory_refs[("TP1", "Total Parameter Capacity")]
+            parameter8 = self.memory_refs[("TP8", "Total Parameter Capacity")]
+            prefill_kv1 = self.memory_refs[("TP1", "Prefill preallocated KV + states")]
+            prefill_kv8 = self.memory_refs[("TP8", "Prefill preallocated KV + states")]
+            decode_kv1 = self.memory_refs[("TP1", "Decode preallocated KV + states")]
+            decode_kv8 = self.memory_refs[("TP8", "Decode preallocated KV + states")]
+            if value_type == "parameter":
+                formula1, formula8 = parameter1, parameter8
+            elif value_type == "prefill_kv":
+                formula1, formula8 = prefill_kv1, prefill_kv8
+            elif value_type == "prefill_total":
+                formula1 = f"{parameter1}+{prefill_kv1}"
+                formula8 = f"{parameter8}+{prefill_kv8}"
+            elif value_type == "decode_kv":
+                formula1, formula8 = decode_kv1, decode_kv8
+            else:
+                formula1 = f"{parameter1}+{decode_kv1}"
+                formula8 = f"{parameter8}+{decode_kv8}"
             ws.write_formula(row, 1, f"={formula1}/1E9", self.formats["number"], value1 / 1e9)
             ws.write_formula(row, 2, f"={formula8}/1E9", self.formats["number"], value8 / 1e9)
 
@@ -2992,8 +3056,20 @@ class InferenceComparisonWriter(CalculatorWriter):
         add_chart("Decode 每 Rank 计算量", "N3", (4, 6), [("TP1", 3), ("TP8", 4)], "GFLOPs")
         add_chart("Prefill 每 Rank HBM 流量", "G20", (10, 12), [("TP1", 1), ("TP8", 2)], "GB")
         add_chart("Decode 每 Rank HBM 流量", "N20", (10, 12), [("TP1", 3), ("TP8", 4)], "GB")
-        add_chart("每 Rank 参数容量", "G37", (16, 18), [("TP1", 1), ("TP8", 2)], "GB")
-        add_chart("Decode 每 Rank 驻留容量", "N37", (22, 23), [("TP1", 1), ("TP8", 2)], "GB")
+        add_chart(
+            "静态参数容量/单 Rank（Prefill/Decode 共用）",
+            "G37",
+            (16, 18),
+            [("TP1 单 Rank", 1), ("TP8 单 Rank", 2)],
+            "GB",
+        )
+        add_chart(
+            "Prefill / Decode 单 Rank 容量（TP 配置独立）",
+            "N37",
+            (22, 26),
+            [("TP1 单 Rank", 1), ("TP8 单 Rank", 2)],
+            "GB",
+        )
         ws.set_column("A:A", 25)
         ws.set_column("B:E", 20)
 
