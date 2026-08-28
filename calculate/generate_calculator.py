@@ -1280,13 +1280,26 @@ class CalculatorWriter:
         column = xl_col_to_name(col)
         self.workbook.define_name(name, f"='{sheet}'!${column}${row + 1}")
 
+    def _unit_number_format(self, style: str, unit: str) -> Any:
+        options: dict[str, Any] = {
+            "border": 1,
+            "num_format": f'#,##0.000 "{unit}"',
+        }
+        if style == "input":
+            options.update({"bg_color": "#D9EAF7", "num_format": f'0.######## "{unit}"'})
+        elif style == "derived":
+            options.update({"bg_color": "#E8F5E9", "num_format": f'0.######## "{unit}"'})
+        elif style == "total":
+            options.update({"bold": True, "bg_color": "#D6EAF8"})
+        return self.workbook.add_format(options)
+
     def write_parameters(self) -> None:
         ws = self.workbook.add_worksheet("Parameters")
         ws.hide_gridlines(2)
         ws.freeze_panes(3, 0)
         ws.write(0, 0, "DeepSeek V4 Flash - Editable Architecture Parameters", self.formats["title"])
         ws.write(1, 0, "Blue cells are editable inputs. Green cells are derived Excel formulas.", self.formats["note"])
-        headers = ["Category", "Parameter", "Excel name", "Value", "Unit", "Description", "Validation"]
+        headers = ["Category", "Parameter", "Excel name", "Value", "Description", "Validation"]
         for col, header in enumerate(headers):
             ws.write(2, col, header, self.formats["header"])
 
@@ -1333,17 +1346,16 @@ class CalculatorWriter:
             ("Hardware", "Peak compute", "PeakTFLOPs", self.p.peak_tflops, "TFLOP/s", "Editable illustrative hardware peak."),
             ("Hardware", "HBM bandwidth", "HBMBandwidthGBps", self.p.hbm_gbps, "GB/s", "Editable sustained/target HBM bandwidth."),
             ("Hardware", "Interconnect bandwidth", "InterconnectGBps", self.p.interconnect_gbps, "GB/s", "Editable effective bidirectional bandwidth."),
-            ("Hardware", "Prefill target latency", "PrefillTargetMs", self.p.prefill_target_ms, "ms", "Used to derive required throughput."),
-            ("Hardware", "Decode target latency", "DecodeTargetMs", self.p.decode_target_ms, "ms", "Used to derive required throughput."),
+            ("Hardware", "Prefill target latency", "PrefillTargetMs", self.p.prefill_target_ms, "ms", "Used only to derive required HBM/interconnect bandwidth."),
+            ("Hardware", "Decode target latency", "DecodeTargetMs", self.p.decode_target_ms, "ms", "Used only to derive required HBM/interconnect bandwidth."),
         ]
         row = 3
         for category, label, name, value, unit, description in records:
             ws.write(row, 0, category, self.formats["text"])
             ws.write(row, 1, label, self.formats["text"])
             ws.write(row, 2, name, self.formats["text"])
-            ws.write_number(row, 3, value, self.formats["input"])
-            ws.write(row, 4, unit, self.formats["text"])
-            ws.write(row, 5, description, self.formats["text"])
+            ws.write_number(row, 3, value, self._unit_number_format("input", unit))
+            ws.write(row, 4, description, self.formats["text"])
             self.parameter_rows[name] = row
             self._define_cell_name(name, "Parameters", row, 3)
             row += 1
@@ -1371,9 +1383,8 @@ class CalculatorWriter:
             ws.write(row, 0, category, self.formats["text"])
             ws.write(row, 1, label, self.formats["text"])
             ws.write(row, 2, name, self.formats["text"])
-            ws.write_formula(row, 3, formula, self.formats["derived"], value)
-            ws.write(row, 4, unit, self.formats["text"])
-            ws.write(row, 5, description, self.formats["text"])
+            ws.write_formula(row, 3, formula, self._unit_number_format("derived", unit), value)
+            ws.write(row, 4, description, self.formats["text"])
             self.parameter_rows[name] = row
             self._define_cell_name(name, "Parameters", row, 3)
             row += 1
@@ -1388,21 +1399,20 @@ class CalculatorWriter:
         ]
         row += 1
         ws.write(row, 0, "Architecture validation", self.formats["section"])
-        ws.merge_range(row, 0, row, 6, "Architecture validation", self.formats["section"])
+        ws.merge_range(row, 0, row, 5, "Architecture validation", self.formats["section"])
         row += 1
         for label, formula, valid in checks:
             ws.write(row, 0, label, self.formats["text"])
-            ws.write_formula(row, 6, formula, self.formats["ok"], "OK" if valid else "ERROR")
+            ws.write_formula(row, 5, formula, self.formats["ok"], "OK" if valid else "ERROR")
             row += 1
-        ws.conditional_format(3, 6, row, 6, {"type": "text", "criteria": "containing", "value": "ERROR", "format": self.workbook.add_format({"bg_color": "#FFC7CE", "font_color": "#9C0006"})})
-        ws.autofilter(2, 0, 2 + len(records) + len(derived), 6)
+        ws.conditional_format(3, 5, row, 5, {"type": "text", "criteria": "containing", "value": "ERROR", "format": self.workbook.add_format({"bg_color": "#FFC7CE", "font_color": "#9C0006"})})
+        ws.autofilter(2, 0, 2 + len(records) + len(derived), 5)
         ws.set_column("A:A", 16)
         ws.set_column("B:B", 29)
         ws.set_column("C:C", 25)
         ws.set_column("D:D", 18)
-        ws.set_column("E:E", 16)
-        ws.set_column("F:F", 58)
-        ws.set_column("G:G", 16)
+        ws.set_column("E:E", 58)
+        ws.set_column("F:F", 16)
 
     def write_layer_config(self) -> None:
         ws = self.workbook.add_worksheet("Layer_Config")
@@ -1900,15 +1910,6 @@ class InferenceComparisonWriter(CalculatorWriter):
                         "num_format": "#,##0.000",
                     }
                 ),
-                "formula_text": self.workbook.add_format(
-                    {
-                        "border": 1,
-                        "font_color": "#555555",
-                        "font_size": 9,
-                        "text_wrap": True,
-                        "valign": "top",
-                    }
-                ),
                 "unit": self.workbook.add_format(
                     {"border": 1, "font_color": "#555555", "align": "left"}
                 ),
@@ -1932,7 +1933,7 @@ class InferenceComparisonWriter(CalculatorWriter):
         ws: Any,
         row: int,
         value_col: int,
-        unit_col: int,
+        _unit_col: int,
         raw_col: int,
         raw_formula: str,
         raw_value: float,
@@ -1945,38 +1946,88 @@ class InferenceComparisonWriter(CalculatorWriter):
             ws.write_formula(
                 row,
                 value_col,
-                f"={raw_ref}",
+                f'=TEXT({raw_ref},"0.00%")',
                 self.formats["percent_display"],
-                raw_value,
+                f"{raw_value:.2%}",
             )
-            ws.write(row, unit_col, "%", self.formats["unit"])
             return
         if kind in {"flops", "bytes", "params"}:
             value_formula, unit_formula = display_formula(raw_ref, kind)
             display_value, display_unit = scaled_value(raw_value, kind)
+            if kind == "params":
+                display_unit = display_unit.removesuffix(" params")
+            unit_formula_body = self._formula_body(unit_formula)
+            if kind == "params":
+                for source, target in (
+                    ("T params", "T"),
+                    ("G params", "G"),
+                    ("M params", "M"),
+                    ("K params", "K"),
+                    ("params", ""),
+                ):
+                    unit_formula_body = unit_formula_body.replace(
+                        f'"{source}"', f'"{target}"'
+                    )
+            formula = (
+                f'=TEXT({value_formula[1:]},"#,##0.000")'
+                f'&IF(({unit_formula_body})="",""," "&({unit_formula_body}))'
+            )
+            cached_value = f"{display_value:,.3f} {display_unit}".rstrip()
             ws.write_formula(
                 row,
                 value_col,
-                value_formula,
+                formula,
                 self.formats["display_total" if total else "display"],
-                display_value,
-            )
-            ws.write_formula(
-                row,
-                unit_col,
-                unit_formula,
-                self.formats["unit"],
-                display_unit,
+                cached_value,
             )
             return
+        unit = kind
         ws.write_formula(
             row,
             value_col,
-            f"={raw_ref}",
+            f'=TEXT({raw_ref},"#,##0.000")&" {unit}"',
             self.formats["display_total" if total else "display"],
-            raw_value,
+            f"{raw_value:,.3f} {unit}",
         )
-        ws.write(row, unit_col, kind, self.formats["unit"])
+
+    def _write_combined_param_value(
+        self,
+        ws: Any,
+        row: int,
+        value_col: int,
+        raw_col: int,
+        raw_formula: str,
+        raw_value: float,
+        total: bool = False,
+    ) -> None:
+        ws.write_formula(row, raw_col, raw_formula, self.formats["number"], raw_value)
+        raw_ref = f"{xl_col_to_name(raw_col)}{row + 1}"
+        value_formula, unit_formula = display_formula(raw_ref, "params")
+        display_value, display_unit = scaled_value(raw_value, "params")
+        unit_formula_body = unit_formula[1:]
+        for source, target in (
+            ("T params", "T"),
+            ("G params", "G"),
+            ("M params", "M"),
+            ("K params", "K"),
+            ("params", ""),
+        ):
+            unit_formula_body = unit_formula_body.replace(
+                f'"{source}"', f'"{target}"'
+            )
+        formula = (
+            f'=TEXT({value_formula[1:]},"#,##0.000")'
+            f'&IF(({unit_formula_body})="",""," "&({unit_formula_body}))'
+        )
+        display_unit = display_unit.removesuffix(" params")
+        cached_value = f"{display_value:,.3f} {display_unit}".rstrip()
+        ws.write_formula(
+            row,
+            value_col,
+            formula,
+            self.formats["display_total" if total else "display"],
+            cached_value,
+        )
 
     def _scenario_inputs(
         self, mode: str
@@ -1993,7 +2044,7 @@ class InferenceComparisonWriter(CalculatorWriter):
         ws.write_row(
             2,
             0,
-            ["Helper metric", "Excel formula (text)", "Value", "Unit"],
+            ["Helper metric", "Value"],
             self.formats["header"],
         )
         if mode == "prefill":
@@ -2021,10 +2072,8 @@ class InferenceComparisonWriter(CalculatorWriter):
         row = 3
         for label, name, formula, value, unit in rows:
             ws.write(row, 0, label, self.formats["text"])
-            ws.write_string(row, 1, formula, self.formats["formula_text"])
-            ws.write_formula(row, 2, formula, self.formats["derived"], value)
-            ws.write(row, 3, unit, self.formats["unit"])
-            self._define_cell_name(name, ws.name, row, 2)
+            ws.write_formula(row, 1, formula, self._unit_number_format("derived", unit), value)
+            self._define_cell_name(name, ws.name, row, 1)
             row += 1
         return row
 
@@ -2059,20 +2108,12 @@ class InferenceComparisonWriter(CalculatorWriter):
             "Category",
             "Item",
             "Layer scope",
-            "FLOPs formula (text)",
-            "HBM formula (text)",
             "TP1 FLOPs",
-            "TP1 FLOPs unit",
             "TP8 FLOPs/rank",
-            "TP8 FLOPs unit",
             "TP1 HBM/rank",
-            "TP1 HBM unit",
             "TP8 HBM/rank",
-            "TP8 HBM unit",
             "TP1 Interconnect",
-            "TP1 interconnect unit",
             "TP8 Interconnect/rank",
-            "TP8 interconnect unit",
             "Accounting",
             "Notes",
         ]
@@ -2114,18 +2155,6 @@ class InferenceComparisonWriter(CalculatorWriter):
             ws.write(row, 0, tp1_item.category, self.formats["text"])
             ws.write(row, 1, tp1_item.name, self.formats["text"])
             ws.write(row, 2, tp1_item.layer_scope, self.formats["text"])
-            ws.write_string(
-                row,
-                3,
-                f"TP1 {tp1_flops}\nTP8 {tp8_flops}",
-                self.formats["formula_text"],
-            )
-            ws.write_string(
-                row,
-                4,
-                f"TP1 read {tp1_read}; write {tp1_write}\nTP8 read {tp8_read}; write {tp8_write}",
-                self.formats["formula_text"],
-            )
             ws.write_formula(
                 row,
                 raw_global_col,
@@ -2136,8 +2165,8 @@ class InferenceComparisonWriter(CalculatorWriter):
             self._write_human_value(
                 ws,
                 row,
-                5,
-                6,
+                3,
+                4,
                 raw_tp1_flops_col,
                 tp1_flops,
                 tp1_item.rank_flops,
@@ -2146,8 +2175,8 @@ class InferenceComparisonWriter(CalculatorWriter):
             self._write_human_value(
                 ws,
                 row,
-                7,
-                8,
+                4,
+                4,
                 raw_tp8_flops_col,
                 tp8_flops,
                 tp8_item.rank_flops,
@@ -2160,8 +2189,8 @@ class InferenceComparisonWriter(CalculatorWriter):
             self._write_human_value(
                 ws,
                 row,
-                9,
-                10,
+                5,
+                5,
                 raw_tp1_hbm_col,
                 tp1_hbm,
                 tp1_item.read_bytes + tp1_item.write_bytes,
@@ -2170,8 +2199,8 @@ class InferenceComparisonWriter(CalculatorWriter):
             self._write_human_value(
                 ws,
                 row,
-                11,
-                12,
+                6,
+                6,
                 raw_tp8_hbm_col,
                 tp8_hbm,
                 tp8_item.read_bytes + tp8_item.write_bytes,
@@ -2180,8 +2209,8 @@ class InferenceComparisonWriter(CalculatorWriter):
             self._write_human_value(
                 ws,
                 row,
-                13,
-                14,
+                7,
+                7,
                 raw_tp1_network_col,
                 tp1_network,
                 tp1_item.network_bytes,
@@ -2190,15 +2219,15 @@ class InferenceComparisonWriter(CalculatorWriter):
             self._write_human_value(
                 ws,
                 row,
-                15,
-                16,
+                8,
+                8,
                 raw_tp8_network_col,
                 tp8_network,
                 tp8_item.network_bytes,
                 "bytes",
             )
-            ws.write(row, 17, tp1_item.accounting, self.formats["text"])
-            ws.write(row, 18, tp1_item.notes, self.formats["text"])
+            ws.write(row, 9, tp1_item.accounting, self.formats["text"])
+            ws.write(row, 10, tp1_item.notes, self.formats["text"])
 
         ws.add_table(
             detail_header_row,
@@ -2214,17 +2243,17 @@ class InferenceComparisonWriter(CalculatorWriter):
         ws.set_column(raw_global_col, raw_tp8_hbm_col, None, None, {"hidden": True})
 
         summary_start = helper_end + 1
-        ws.merge_range(summary_start, 0, summary_start, 5, "Scenario summary", self.formats["section"])
+        ws.merge_range(summary_start, 0, summary_start, 2, "Scenario summary", self.formats["section"])
         summary_header = summary_start + 1
         ws.write_row(
             summary_header,
             0,
-            ["Metric", "Excel formula (text)", "TP1 value", "Unit", "TP8 value/rank", "Unit"],
+            ["Metric", "TP1", "TP8/rank"],
             self.formats["header"],
         )
 
         category_col = "$A"
-        accounting_col = "$R"
+        accounting_col = "$J"
         tp1_flops_col = "$U"
         tp8_flops_col = "$V"
         tp1_read_col = "$W"
@@ -2265,7 +2294,7 @@ class InferenceComparisonWriter(CalculatorWriter):
             ("Total HBM traffic", f"=SUM({tp1_read_col}${detail_first_excel}:{tp1_write_col}${detail_last_excel})", total_tp1_hbm, f"=SUM({tp8_read_col}${detail_first_excel}:{tp8_write_col}${detail_last_excel})", total_tp8_hbm, "bytes"),
             ("Interconnect transfer", f"=SUM({tp1_network_col}${detail_first_excel}:{tp1_network_col}${detail_last_excel})", tp1_summary["total_interconnect_bytes_per_rank"], f"=SUM({tp8_network_col}${detail_first_excel}:{tp8_network_col}${detail_last_excel})", tp8_summary["total_interconnect_bytes_per_rank"], "bytes"),
             ("Arithmetic intensity", f"=SUM({tp1_flops_col}${detail_first_excel}:{tp1_flops_col}${detail_last_excel})/(SUM({tp1_read_col}${detail_first_excel}:{tp1_read_col}${detail_last_excel})+SUM({tp1_write_col}${detail_first_excel}:{tp1_write_col}${detail_last_excel}))", tp1_summary["total_per_rank_flops"] / total_tp1_hbm, f"=SUM({tp8_flops_col}${detail_first_excel}:{tp8_flops_col}${detail_last_excel})/(SUM({tp8_read_col}${detail_first_excel}:{tp8_read_col}${detail_last_excel})+SUM({tp8_write_col}${detail_first_excel}:{tp8_write_col}${detail_last_excel}))", tp8_summary["total_per_rank_flops"] / total_tp8_hbm, "FLOPs/byte"),
-            ("Required compute at target", f"=SUM({tp1_flops_col}${detail_first_excel}:{tp1_flops_col}${detail_last_excel})/({target_name}/1000)/1E12", tp1_summary["total_per_rank_flops"] / (target_ms / 1000) / 1e12, f"=SUM({tp8_flops_col}${detail_first_excel}:{tp8_flops_col}${detail_last_excel})/({target_name}/1000)/1E12", tp8_summary["total_per_rank_flops"] / (target_ms / 1000) / 1e12, "TFLOP/s"),
+            ("One-inference compute demand", f"=SUM({tp1_flops_col}${detail_first_excel}:{tp1_flops_col}${detail_last_excel})", tp1_summary["total_per_rank_flops"], f"=SUM({tp8_flops_col}${detail_first_excel}:{tp8_flops_col}${detail_last_excel})", tp8_summary["total_per_rank_flops"], "flops"),
             ("Required HBM at target", f"=(SUM({tp1_read_col}${detail_first_excel}:{tp1_read_col}${detail_last_excel})+SUM({tp1_write_col}${detail_first_excel}:{tp1_write_col}${detail_last_excel}))/({target_name}/1000)/1E9", total_tp1_hbm / (target_ms / 1000) / 1e9, f"=(SUM({tp8_read_col}${detail_first_excel}:{tp8_read_col}${detail_last_excel})+SUM({tp8_write_col}${detail_first_excel}:{tp8_write_col}${detail_last_excel}))/({target_name}/1000)/1E9", total_tp8_hbm / (target_ms / 1000) / 1e9, "GB/s"),
         ]
 
@@ -2274,17 +2303,11 @@ class InferenceComparisonWriter(CalculatorWriter):
         for offset, (label, tp1_formula, tp1_value, tp8_formula, tp8_value, kind) in enumerate(specs):
             row = summary_header + 1 + offset
             ws.write(row, 0, label, self.formats["text"])
-            ws.write_string(
-                row,
-                1,
-                f"TP1 {tp1_formula}\nTP8 {tp8_formula}",
-                self.formats["formula_text"],
-            )
             self._write_human_value(
                 ws,
                 row,
+                1,
                 2,
-                3,
                 raw_tp1_summary_col,
                 tp1_formula,
                 tp1_value,
@@ -2294,8 +2317,8 @@ class InferenceComparisonWriter(CalculatorWriter):
             self._write_human_value(
                 ws,
                 row,
-                4,
-                5,
+                2,
+                3,
                 raw_tp8_summary_col,
                 tp8_formula,
                 tp8_value,
@@ -2307,14 +2330,12 @@ class InferenceComparisonWriter(CalculatorWriter):
 
         ws.set_column(raw_tp1_summary_col, raw_tp8_summary_col, None, None, {"hidden": True})
         ws.set_column("A:A", 23)
-        ws.set_column("B:B", 64)
-        ws.set_column("C:C", 24)
-        ws.set_column("D:D", 52)
-        ws.set_column("E:E", 52)
-        ws.set_column("F:P", 16)
-        ws.set_column("Q:Q", 13)
-        ws.set_column("R:R", 13)
-        ws.set_column("S:S", 60)
+        ws.set_column("B:B", 33)
+        ws.set_column("C:C", 25)
+        ws.set_column("D:I", 16)
+        ws.set_column("J:J", 13)
+        ws.set_column("K:K", 60)
+        ws.set_column("L:S", None, None, {"hidden": True})
 
     def write_memory(self) -> dict[str, float]:
         sheet = "Memory"
@@ -2326,18 +2347,11 @@ class InferenceComparisonWriter(CalculatorWriter):
         headers = [
             "大类",
             "参数组件",
-            "参数量公式（文本）",
-            "容量公式（文本）",
             "全局参数量",
-            "全局参数量单位",
             "TP1 参数量/rank",
-            "TP1 参数量单位",
             "TP8 参数量/rank",
-            "TP8 参数量单位",
             "TP1 容量/rank",
-            "TP1 容量单位",
             "TP8 容量/rank",
-            "TP8 容量单位",
             "说明",
         ]
         ws.write_row(2, 0, headers, self.formats["header"])
@@ -2370,43 +2384,27 @@ class InferenceComparisonWriter(CalculatorWriter):
             )
             ws.write(row, 0, tp1_component.category, self.formats["text"])
             ws.write(row, 1, tp1_component.name, self.formats["text"])
-            ws.write_string(
+            self._write_combined_param_value(
+                ws,
                 row,
                 2,
-                f"Global ={tp1_component.global_count_formula}\nTP1 {tp1_count_formula}\nTP8 {tp8_count_formula}",
-                self.formats["formula_text"],
+                raw_global_count_col,
+                "=" + tp1_component.global_count_formula,
+                tp1_component.global_count,
             )
-            ws.write_string(
+            self._write_combined_param_value(
+                ws,
                 row,
                 3,
-                f"Global ={tp1_component.global_bytes_formula}\nTP1 {tp1_bytes_formula}\nTP8 {tp8_bytes_formula}",
-                self.formats["formula_text"],
+                raw_tp1_count_col,
+                tp1_count_formula,
+                tp1_component.rank_count,
             )
             self._write_human_value(
                 ws,
                 row,
                 4,
-                5,
-                raw_global_count_col,
-                "=" + tp1_component.global_count_formula,
-                tp1_component.global_count,
-                "params",
-            )
-            self._write_human_value(
-                ws,
-                row,
-                6,
-                7,
-                raw_tp1_count_col,
-                tp1_count_formula,
-                tp1_component.rank_count,
-                "params",
-            )
-            self._write_human_value(
-                ws,
-                row,
-                8,
-                9,
+                4,
                 raw_tp8_count_col,
                 tp8_count_formula,
                 tp8_component.rank_count,
@@ -2422,8 +2420,8 @@ class InferenceComparisonWriter(CalculatorWriter):
             self._write_human_value(
                 ws,
                 row,
-                10,
-                11,
+                5,
+                5,
                 raw_tp1_bytes_col,
                 tp1_bytes_formula,
                 tp1_component.rank_bytes,
@@ -2432,14 +2430,14 @@ class InferenceComparisonWriter(CalculatorWriter):
             self._write_human_value(
                 ws,
                 row,
-                12,
-                13,
+                6,
+                6,
                 raw_tp8_bytes_col,
                 tp8_bytes_formula,
                 tp8_component.rank_bytes,
                 "bytes",
             )
-            ws.write(row, 14, tp1_component.notes, self.formats["text"])
+            ws.write(row, 7, tp1_component.notes, self.formats["text"])
 
         ws.add_table(
             2,
@@ -2465,7 +2463,7 @@ class InferenceComparisonWriter(CalculatorWriter):
             summary_start,
             0,
             summary_start,
-            8,
+            4,
             "参数量与参数容量汇总",
             self.formats["section"],
         )
@@ -2476,13 +2474,9 @@ class InferenceComparisonWriter(CalculatorWriter):
             [
                 "大类",
                 "TP1 参数量/rank",
-                "单位",
                 "TP8 参数量/rank",
-                "单位",
                 "TP1 容量/rank",
-                "单位",
                 "TP8 容量/rank",
-                "单位",
             ],
             self.formats["header"],
         )
@@ -2519,21 +2513,21 @@ class InferenceComparisonWriter(CalculatorWriter):
             category_values[category] = values
             ws.write(row, 0, category, self.formats["total" if category == "Total" else "text"])
             self._write_human_value(ws, row, 1, 2, raw_summary_cols[0], formulas[0], values["tp1_count"], "params", category == "Total")
-            self._write_human_value(ws, row, 3, 4, raw_summary_cols[1], formulas[1], values["tp8_count"], "params", category == "Total")
-            self._write_human_value(ws, row, 5, 6, raw_summary_cols[2], formulas[2], values["tp1_bytes"], "bytes", category == "Total")
-            self._write_human_value(ws, row, 7, 8, raw_summary_cols[3], formulas[3], values["tp8_bytes"], "bytes", category == "Total")
+            self._write_human_value(ws, row, 2, 3, raw_summary_cols[1], formulas[1], values["tp8_count"], "params", category == "Total")
+            self._write_human_value(ws, row, 3, 4, raw_summary_cols[2], formulas[2], values["tp1_bytes"], "bytes", category == "Total")
+            self._write_human_value(ws, row, 4, 5, raw_summary_cols[3], formulas[3], values["tp8_bytes"], "bytes", category == "Total")
             self.memory_refs[("TP1", f"{category} Parameter Count")] = self._cell(sheet, row, raw_summary_cols[0])
             self.memory_refs[("TP8", f"{category} Parameter Count")] = self._cell(sheet, row, raw_summary_cols[1])
             self.memory_refs[("TP1", f"{category} Parameter Capacity")] = self._cell(sheet, row, raw_summary_cols[2])
             self.memory_refs[("TP8", f"{category} Parameter Capacity")] = self._cell(sheet, row, raw_summary_cols[3])
 
         cache_start = summary_header + 7
-        ws.merge_range(cache_start, 0, cache_start, 6, "KV Cache 与 Compressor State（每 Rank，TP 间复制）", self.formats["section"])
+        ws.merge_range(cache_start, 0, cache_start, 3, "KV Cache 与 Compressor State（每 Rank，TP 间复制）", self.formats["section"])
         cache_header = cache_start + 1
         ws.write_row(
             cache_header,
             0,
-            ["项目", "公式（文本）", "TP1/rank", "单位", "TP8/rank", "单位", "说明"],
+            ["项目", "TP1/rank", "TP8/rank", "说明"],
             self.formats["header"],
         )
         prefill_cache = cache_values(
@@ -2569,10 +2563,9 @@ class InferenceComparisonWriter(CalculatorWriter):
         for offset, (label, formula, value, note) in enumerate(cache_specs):
             row = cache_header + 1 + offset
             ws.write(row, 0, label, self.formats["text"])
-            ws.write_string(row, 1, formula, self.formats["formula_text"])
-            self._write_human_value(ws, row, 2, 3, raw_tp1_cache_col, formula, value, "bytes")
-            self._write_human_value(ws, row, 4, 5, raw_tp8_cache_col, formula, value, "bytes")
-            ws.write(row, 6, note, self.formats["text"])
+            self._write_human_value(ws, row, 1, 2, raw_tp1_cache_col, formula, value, "bytes")
+            self._write_human_value(ws, row, 2, 3, raw_tp8_cache_col, formula, value, "bytes")
+            ws.write(row, 3, note, self.formats["text"])
             self.memory_refs[("TP1", label)] = self._cell(sheet, row, raw_tp1_cache_col)
             self.memory_refs[("TP8", label)] = self._cell(sheet, row, raw_tp8_cache_col)
 
@@ -2582,13 +2575,13 @@ class InferenceComparisonWriter(CalculatorWriter):
         rank_headers = [
             "配置",
             "Rank",
-            "Attention 参数 GB",
-            "MoE 参数 GB",
-            "Other 参数 GB",
-            "参数总计 GB",
-            "Decode KV+State GB",
-            "总驻留 GB",
-            "逻辑参数量 G",
+            "Attention 参数",
+            "MoE 参数",
+            "Other 参数",
+            "参数总计",
+            "Decode KV+State",
+            "总驻留",
+            "逻辑参数量",
             "有效",
         ]
         ws.write_row(rank_header, 0, rank_headers, self.formats["header"])
@@ -2618,7 +2611,7 @@ class InferenceComparisonWriter(CalculatorWriter):
                     rank_row,
                     col,
                     f"={ref}/1E9",
-                    self.formats["number"],
+                    self._unit_number_format("number", "GB"),
                     value,
                 )
             total_resident = values[3] + values[4]
@@ -2626,7 +2619,7 @@ class InferenceComparisonWriter(CalculatorWriter):
                 rank_row,
                 7,
                 f"=F{rank_row + 1}+G{rank_row + 1}",
-                self.formats["number"],
+                self._unit_number_format("number", "GB"),
                 total_resident,
             )
             count_value = category_values["Total"][f"{label.lower()}_count"] / 1e9
@@ -2634,7 +2627,7 @@ class InferenceComparisonWriter(CalculatorWriter):
                 rank_row,
                 8,
                 f"={count_ref}/1E9",
-                self.formats["number"],
+                self._unit_number_format("number", "G"),
                 count_value,
             )
             ws.write(rank_row, 9, f"{p_config.tp} 个 Rank 均相同", self.formats["text"])
@@ -2653,9 +2646,8 @@ class InferenceComparisonWriter(CalculatorWriter):
         ws.set_column(15, 20, None, None, {"hidden": True})
         ws.set_column("A:A", 18)
         ws.set_column("B:B", 32)
-        ws.set_column("C:D", 72)
-        ws.set_column("E:N", 18)
-        ws.set_column("O:O", 58)
+        ws.set_column("C:J", 18)
+        ws.set_column("K:K", 58)
 
         return {
             "tp1_parameter_total": category_values["Total"]["tp1_bytes"],
@@ -2674,6 +2666,128 @@ class InferenceComparisonWriter(CalculatorWriter):
             "decode_effective_cache": decode_cache["total"],
             "decode_allocated_cache": allocated_decode["total"],
         }
+
+    def write_dtype(self) -> None:
+        ws = self.workbook.add_worksheet("dtype")
+        ws.hide_gridlines(2)
+        ws.freeze_panes(3, 0)
+        ws.write(0, 0, "DeepSeek V4 Flash DType Layout", self.formats["title"])
+        ws.write(
+            1,
+            0,
+            "按当前 config.json 与 inference 实现整理；存储 dtype 与计算 dtype 分开列出。",
+            self.formats["note"],
+        )
+        headers = [
+            "适用范围",
+            "模块/张量",
+            "落盘/参数存储",
+            "激活/中间计算",
+            "说明",
+        ]
+        ws.write_row(2, 0, headers, self.formats["header"])
+        dtype_rows = [
+            ("全局配置", "torch_dtype / 主干激活", "BF16", "BF16", "config.json 的 torch_dtype=bfloat16；隐藏状态与残差主路径使用 BF16。"),
+            ("全局配置", "普通量化线性层", "FP8 E4M3 + FP8 E8M0 scale", "动态 FP8 activation quant", "quantization_config: quant_method=fp8，fmt=e4m3，scale_fmt=ue8m0。"),
+            ("所有层 0-42", "Attention 主投影 wq_a/wq_b/wkv/wo_b", "FP8 E4M3 + FP8 E8M0 scale", "FP8 GEMM；输入由 BF16 动态量化", "大多数 Attention 线性权重。"),
+            ("所有层 0-42", "Attention 输出投影 wo_a", "BF16", "BF16 einsum", "checkpoint 中为 FP8，转换后在推理实现中按 BF16 使用。"),
+            ("所有层 0-42", "RMSNorm 权重与归一化", "权重 BF16；实现参数 FP32", "FP32 math，输出回 BF16", "Norm 计算先转 FP32 以提高稳定性。"),
+            ("ratio-4 / ratio-128 层", "Main Compressor wkv/wgate/ape", "checkpoint 主要为 BF16；实现参数 FP32", "FP32 compression / softmax", "Compressor 参数在推理实现中提升到 FP32。"),
+            ("ratio-4 层", "Indexer projections and score", "wq_b FP8；weights_proj BF16", "QAT/FP4-simulated QKV；score FP32", "仅 ratio-4 层启用 Indexer。"),
+            ("所有层 0-42", "Routed Experts w1/w2/w3", "FP4 E2M1 packed + FP8 E8M0 scale", "FP4 GEMM；SwiGLU FP32；输出回 BF16", "expert_dtype=fp4；每 token 激活 6 个 routed experts。"),
+            ("所有层 0-42", "Shared Expert w1/w2/w3", "FP8 E4M3 + FP8 E8M0 scale", "FP8 GEMM；SwiGLU FP32", "每层 1 个 shared expert，跨 TP rank 复制。"),
+            ("所有层 0-42", "Router scores / route weights", "bias FP32；hash table INT32", "FP32", "sqrt(softplus) 评分、top-k 和归一化在 FP32 中完成。"),
+            ("第 0-2 层", "Hash routing table", "INT32", "INT32 indexing", "前 3 层使用 token-ID 到 expert-ID 的预计算路由。"),
+            ("所有层 0-42", "mHC parameters / attention sink", "FP32", "FP32", "HC mixing、Sinkhorn 与 sink 参数使用 FP32。"),
+            ("所有层 0-42", "KV cache", "BF16", "BF16；部分非 RoPE 维度做 FP8 simulation", "当前 inference 实现中的 KV cache 为 BF16。"),
+            ("模型尾部", "Final norm / HC head", "FP32 inference parameters", "FP32 math，输出回 BF16", "最终 HC reduction 与 RMSNorm。"),
+            ("模型尾部", "LM head / logits", "checkpoint BF16；实现参数 FP32", "FP32 linear 与 logits", "词表并行；logits 以 FP32 计算。"),
+        ]
+        for row, values in enumerate(dtype_rows, start=3):
+            ws.write_row(row, 0, values, self.formats["text"])
+        dtype_last_row = 2 + len(dtype_rows)
+        ws.add_table(
+            2,
+            0,
+            dtype_last_row,
+            len(headers) - 1,
+            {
+                "name": "DType_Module_Layout",
+                "style": "Table Style Medium 2",
+                "columns": [{"header": header} for header in headers],
+            },
+        )
+
+        section_row = dtype_last_row + 2
+        ws.merge_range(
+            section_row,
+            0,
+            section_row,
+            8,
+            "43 层逐层 dtype 与 Attention / Router 模式",
+            self.formats["section"],
+        )
+        layer_header = section_row + 1
+        layer_headers = [
+            "Layer ID",
+            "Attention 模式",
+            "压缩比例",
+            "Router 模式",
+            "Hidden / residual",
+            "Attention 主投影",
+            "Routed Expert",
+            "Shared Expert",
+            "Norm / HC / Router math",
+        ]
+        ws.write_row(layer_header, 0, layer_headers, self.formats["header"])
+        for layer_id, ratio in enumerate(self.ratios[: self.layers.total]):
+            if ratio == 0:
+                attention_mode = "Window"
+            elif ratio == self.p.short_ratio:
+                attention_mode = "Short compressed sparse"
+            elif ratio == self.p.long_ratio:
+                attention_mode = "Long compressed"
+            else:
+                attention_mode = "Custom ratio"
+            router_mode = (
+                "Hash routing (INT32)"
+                if layer_id < self.p.hash_layers
+                else "Score routing (FP32)"
+            )
+            ws.write_row(
+                layer_header + 1 + layer_id,
+                0,
+                [
+                    layer_id,
+                    attention_mode,
+                    ratio,
+                    router_mode,
+                    "BF16",
+                    "FP8 E4M3; wo_a BF16",
+                    "FP4 E2M1",
+                    "FP8 E4M3",
+                    "FP32",
+                ],
+                self.formats["text"],
+            )
+        layer_last_row = layer_header + self.layers.total
+        ws.add_table(
+            layer_header,
+            0,
+            layer_last_row,
+            len(layer_headers) - 1,
+            {
+                "name": "DType_Layer_Layout",
+                "style": "Table Style Medium 4",
+                "columns": [{"header": header} for header in layer_headers],
+            },
+        )
+        ws.set_column("A:A", 20)
+        ws.set_column("B:B", 34)
+        ws.set_column("C:C", 20)
+        ws.set_column("D:D", 28)
+        ws.set_column("E:I", 24)
+        ws.set_column("J:J", 2)
 
     def write_summary(self, memory: dict[str, float]) -> None:
         sheet = "Summary"
@@ -2899,7 +3013,7 @@ class InferenceComparisonWriter(CalculatorWriter):
         ws = self.workbook.add_worksheet("Comparison")
         ws.hide_gridlines(2)
         ws.write(0, 0, "TP1 / TP8 推理资源对比图", self.formats["title"])
-        ws.write(1, 0, "所有图表使用线性坐标与固定 M/G/T 单位，不显示科学计数法。", self.formats["note"])
+        ws.write(1, 0, "数量单位直接显示在数值单元格中；图表数据保留为数值，不显示科学计数法。", self.formats["note"])
         pf1 = summarize_items(self._scenario_inputs("prefill")[0])
         pf8 = summarize_items(self._scenario_inputs("prefill")[1])
         dc1 = summarize_items(self._scenario_inputs("decode")[0])
@@ -2915,7 +3029,7 @@ class InferenceComparisonWriter(CalculatorWriter):
             data = summary["categories"][category]
             return data["hbm_read_bytes_per_rank"] + data["hbm_write_bytes_per_rank"]
 
-        ws.write_row(3, 0, ["大类", "Prefill TP1 TFLOPs", "Prefill TP8 TFLOPs", "Decode TP1 GFLOPs", "Decode TP8 GFLOPs"], self.formats["header"])
+        ws.write_row(3, 0, ["大类", "Prefill TP1", "Prefill TP8", "Decode TP1", "Decode TP8"], self.formats["header"])
         for offset, category in enumerate(("Attention", "MoE", "Other")):
             row = 4 + offset
             ws.write(row, 0, category, self.formats["text"])
@@ -2933,9 +3047,10 @@ class InferenceComparisonWriter(CalculatorWriter):
             )
             divisors = (1e12, 1e12, 1e9, 1e9)
             for col, (ref, divisor, value) in enumerate(zip(refs, divisors, values), start=1):
-                ws.write_formula(row, col, f"={ref}/{divisor:g}", self.formats["number"], value)
+                unit = "TFLOPs" if col < 3 else "GFLOPs"
+                ws.write_formula(row, col, f"={ref}/{divisor:g}", self._unit_number_format("number", unit), value)
 
-        ws.write_row(9, 0, ["大类", "Prefill TP1 GB", "Prefill TP8 GB", "Decode TP1 GB", "Decode TP8 GB"], self.formats["header"])
+        ws.write_row(9, 0, ["大类", "Prefill TP1", "Prefill TP8", "Decode TP1", "Decode TP8"], self.formats["header"])
         for offset, category in enumerate(("Attention", "MoE", "Other")):
             row = 10 + offset
             ws.write(row, 0, category, self.formats["text"])
@@ -2948,15 +3063,15 @@ class InferenceComparisonWriter(CalculatorWriter):
                 self.scenario_refs[("DC", "TP8", source_label)],
             )
             for col, (ref, value) in enumerate(zip(refs, values), start=1):
-                ws.write_formula(row, col, f"={ref}/1E9", self.formats["number"], value)
+                ws.write_formula(row, col, f"={ref}/1E9", self._unit_number_format("number", "GB"), value)
 
         ws.write_row(
             15,
             0,
             [
                 "静态参数大类（Prefill/Decode 共用）",
-                "TP1 单 Rank GB",
-                "TP8 单 Rank GB",
+                "TP1 单 Rank",
+                "TP8 单 Rank",
             ],
             self.formats["header"],
         )
@@ -2966,7 +3081,7 @@ class InferenceComparisonWriter(CalculatorWriter):
             for col, label in ((1, "TP1"), (2, "TP8")):
                 ref = self.memory_refs[(label, f"{category} Parameter Capacity")]
                 value = memory[f"{label.lower()}_{category.lower()}_parameter"] / 1e9
-                ws.write_formula(row, col, f"={ref}/1E9", self.formats["number"], value)
+                ws.write_formula(row, col, f"={ref}/1E9", self._unit_number_format("number", "GB"), value)
 
         ws.write(
             19,
@@ -2977,7 +3092,7 @@ class InferenceComparisonWriter(CalculatorWriter):
         ws.write_row(
             21,
             0,
-            ["单 Rank 容量项", "TP1 单 Rank GB", "TP8 单 Rank GB"],
+            ["单 Rank 容量项", "TP1 单 Rank", "TP8 单 Rank"],
             self.formats["header"],
         )
         capacity_rows = (
@@ -3021,55 +3136,52 @@ class InferenceComparisonWriter(CalculatorWriter):
             else:
                 formula1 = f"{parameter1}+{decode_kv1}"
                 formula8 = f"{parameter8}+{decode_kv8}"
-            ws.write_formula(row, 1, f"=({formula1})/1E9", self.formats["number"], value1 / 1e9)
-            ws.write_formula(row, 2, f"=({formula8})/1E9", self.formats["number"], value8 / 1e9)
+            ws.write_formula(row, 1, f"=({formula1})/1E9", self._unit_number_format("number", "GB"), value1 / 1e9)
+            ws.write_formula(row, 2, f"=({formula8})/1E9", self._unit_number_format("number", "GB"), value8 / 1e9)
 
         ws.write_row(
             29,
             0,
-            ["算力需求场景", "所需 TFLOP/s"],
+            ["算力需求场景", "所需"],
             self.formats["header"],
         )
         compute_requirements = (
             (
                 "Prefill TP1/rank",
-                self.scenario_refs[("PF", "TP1", "Required compute at target")],
-                pf1["total_per_rank_flops"]
-                / (self.p.prefill_target_ms / 1000)
-                / 1e12,
+                self.scenario_refs[("PF", "TP1", "Total inference FLOPs")],
+                pf1["total_per_rank_flops"],
             ),
             (
                 "Prefill TP8/rank",
-                self.scenario_refs[("PF", "TP8", "Required compute at target")],
-                pf8["total_per_rank_flops"]
-                / (self.p.prefill_target_ms / 1000)
-                / 1e12,
+                self.scenario_refs[("PF", "TP8", "Total inference FLOPs")],
+                pf8["total_per_rank_flops"],
             ),
             (
                 "Decode TP1/rank",
-                self.scenario_refs[("DC", "TP1", "Required compute at target")],
-                dc1["total_per_rank_flops"]
-                / (self.p.decode_target_ms / 1000)
-                / 1e12,
+                self.scenario_refs[("DC", "TP1", "Total inference FLOPs")],
+                dc1["total_per_rank_flops"],
             ),
             (
                 "Decode TP8/rank",
-                self.scenario_refs[("DC", "TP8", "Required compute at target")],
-                dc8["total_per_rank_flops"]
-                / (self.p.decode_target_ms / 1000)
-                / 1e12,
+                self.scenario_refs[("DC", "TP8", "Total inference FLOPs")],
+                dc8["total_per_rank_flops"],
             ),
         )
+        compute_raw_col = 7
         for offset, (label, reference, value) in enumerate(compute_requirements):
             row = 30 + offset
             ws.write(row, 0, label, self.formats["text"])
-            ws.write_formula(
+            self._write_human_value(
+                ws,
                 row,
                 1,
+                1,
+                compute_raw_col,
                 f"={reference}",
-                self.formats["number"],
                 value,
+                "flops",
             )
+        ws.set_column(compute_raw_col, compute_raw_col, None, None, {"hidden": True})
 
         def add_chart(title: str, anchor: str, categories: tuple[int, int], series: list[tuple[str, int]], y_name: str) -> None:
             chart = self.workbook.add_chart({"type": "column"})
@@ -3080,6 +3192,7 @@ class InferenceComparisonWriter(CalculatorWriter):
                     "values": ["Comparison", categories[0], column, categories[1], column],
                     "data_labels": {"value": True, "num_format": "0.0"},
                 })
+                chart.show_hidden_data()
             chart.set_title({"name": title})
             chart.set_y_axis({"name": y_name, "num_format": "0.0", "major_gridlines": {"visible": True}})
             chart.set_x_axis({"label_position": "low"})
@@ -3088,11 +3201,11 @@ class InferenceComparisonWriter(CalculatorWriter):
             ws.insert_chart(anchor, chart, {"x_scale": 1.28, "y_scale": 1.15})
 
         add_chart(
-            "目标时延所需总算力/单 Rank",
+            "一次推理所需总计算量/单 Rank",
             "A36",
             (30, 33),
-            [("所需 TFLOP/s", 1)],
-            "TFLOP/s",
+            [("单次推理 FLOPs", compute_raw_col)],
+            "FLOPs",
         )
         add_chart("Prefill 每 Rank 计算量", "A53", (4, 6), [("TP1", 1), ("TP8", 2)], "TFLOPs")
         add_chart("Decode 每 Rank 计算量", "J53", (4, 6), [("TP1", 3), ("TP8", 4)], "GFLOPs")
@@ -3229,7 +3342,7 @@ class InferenceComparisonWriter(CalculatorWriter):
                 start_row,
                 0,
                 start_row,
-                5,
+                3,
                 f"{tp}（配置值={size}）单 Rank 资源",
                 self.formats["section"],
             )
@@ -3237,7 +3350,7 @@ class InferenceComparisonWriter(CalculatorWriter):
             ws.write_row(
                 header_row,
                 0,
-                ["资源项目", "Prefill/rank", "单位", "Decode/rank", "单位", "说明"],
+                ["资源项目", "Prefill/rank", "Decode/rank", "说明"],
                 self.formats["header"],
             )
             specs: list[
@@ -3338,27 +3451,19 @@ class InferenceComparisonWriter(CalculatorWriter):
                     )
                 )
 
-            required_compute = (
-                prefill_summary["total_per_rank_flops"]
-                / (self.p.prefill_target_ms / 1000)
-                / 1e12,
-                decode_summary["total_per_rank_flops"]
-                / (self.p.decode_target_ms / 1000)
-                / 1e12,
-            )
             specs.append(
                 (
-                    "目标时延所需计算性能",
+                    "一次推理所需芯片计算量",
                     (
-                        scenario_ref("PF", tp, "Required compute at target"),
-                        required_compute[0],
+                        scenario_ref("PF", tp, "Total inference FLOPs"),
+                        prefill_summary["total_per_rank_flops"],
                     ),
                     (
-                        scenario_ref("DC", tp, "Required compute at target"),
-                        required_compute[1],
+                        scenario_ref("DC", tp, "Total inference FLOPs"),
+                        decode_summary["total_per_rank_flops"],
                     ),
-                    "TFLOP/s",
-                    "单 Rank 最低计算吞吐需求。",
+                    "flops",
+                    "单次推理调用的单 Rank 总 FLOPs；不除以目标时延，延迟由芯片峰值算力另行估算。",
                 )
             )
             interconnect = (
@@ -3461,7 +3566,7 @@ class InferenceComparisonWriter(CalculatorWriter):
                 )
                 for value_col, unit_col, raw_col, spec in (
                     (1, 2, raw_prefill_col, pf_spec),
-                    (3, 4, raw_decode_col, dc_spec),
+                    (2, 3, raw_decode_col, dc_spec),
                 ):
                     formula_ref, value = spec
                     formula = (
@@ -3480,15 +3585,15 @@ class InferenceComparisonWriter(CalculatorWriter):
                         kind,
                         total,
                     )
-                ws.write(row, 5, note, self.formats["text"])
+                ws.write(row, 3, note, self.formats["text"])
             return header_row + len(specs) + 2
 
         next_row = write_tp_section(3, "TP1", pf1, dc1)
         write_tp_section(next_row, "TP8", pf8, dc8)
         ws.set_column(raw_prefill_col, raw_decode_col, None, None, {"hidden": True})
         ws.set_column("A:A", 30)
-        ws.set_column("B:E", 18)
-        ws.set_column("F:F", 62)
+        ws.set_column("B:C", 18)
+        ws.set_column("D:D", 62)
 
 
 def summarize_items(items: list[Item]) -> dict[str, Any]:
@@ -3689,6 +3794,7 @@ def validate_baseline(
             b"Prefill_8K",
             b"Decode_1M",
             b"Memory",
+            b"dtype",
             b"Comparison",
             b"Methodology",
         ):
@@ -3758,6 +3864,7 @@ def main() -> None:
     writer.write_scenario("prefill")
     writer.write_scenario("decode")
     memory = writer.write_memory()
+    writer.write_dtype()
     writer.write_comparison(memory)
     writer.write_methodology()
     writer.write_summary(memory)

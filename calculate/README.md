@@ -21,8 +21,9 @@ $HOME/.local/bin/micromamba run -n deepseek-onnx \
 - `Prefill_8K`：TP1/TP8 每 Rank Prefill 计算与 HBM 明细。
 - `Decode_1M`：TP1/TP8 每 Rank Decode 计算与 HBM 明细。
 - `Memory`：逻辑参数量、量化后参数容量、KV/State 与逐 Rank 容量。
-- `Summary`：面向每 Rank 硬件配置的算力、带宽和容量总览。
-- `Comparison`：无科学计数法的 TP1/TP8 对比图。
+- `dtype`：配置级、模块级和逐层的权重/激活数据类型说明。
+- `Summary`：面向每 Rank 硬件配置的单次推理 FLOPs、带宽和容量总览；单次推理 FLOPs 不按目标时延换算。
+- `Comparison`：无科学计数法的 TP1/TP8 对比图；一次推理的总 FLOPs 与单位显示在同一数量单元格中。
 - `Methodology`：中文统计口径与限制。
 
 蓝色单元格是输入项，绿色及结果单元格由 Excel 公式计算。打开工作簿时会完整
@@ -30,4 +31,5 @@ $HOME/.local/bin/micromamba run -n deepseek-onnx \
 所有推理结果都会更新。
 
 本计算器只考虑推理，不包含反向传播、梯度、优化器或训练状态。HBM 数据是逻辑
-读写量，不模拟 Cache 命中、Kernel 融合或实测运行时间。
+读写量，不模拟 Cache 命中、Kernel 融合或实测运行时间。目标时延仅用于估算 HBM
+和卡间互连带宽，不用于一次推理总 FLOPs 的计算。
