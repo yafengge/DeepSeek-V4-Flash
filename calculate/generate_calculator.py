@@ -26,104 +26,11 @@ ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_CONFIG = ROOT / "inference" / "config.json"
 DEFAULT_OUTPUT = Path(__file__).resolve().parent / "deepseek_v4_flash_calculator.xlsx"
 MAX_LAYER_ROWS = 64
-
-
-DISPLAY_LABELS = {
-    "Attention": "注意力",
-    "MoE": "混合专家",
-    "Other": "其他",
-    "Communication": "通信",
-    "Total": "总计",
-    "Attention 计算量": "注意力计算量",
-    "MoE 计算量": "混合专家计算量",
-    "Other 推理计算量": "其他推理计算量",
-    "Attention HBM 流量": "注意力 HBM 流量",
-    "MoE HBM 流量": "混合专家 HBM 流量",
-    "Other HBM 流量": "其他 HBM 流量",
-    "Attention 所需 HBM 带宽": "注意力所需 HBM 带宽",
-    "MoE 所需 HBM 带宽": "混合专家所需 HBM 带宽",
-    "Other 所需 HBM 带宽": "其他所需 HBM 带宽",
-    "Attention 逻辑参数量": "注意力逻辑参数量",
-    "MoE 逻辑参数量": "混合专家逻辑参数量",
-    "Other 逻辑参数量": "其他逻辑参数量",
-    "Attention 参数容量": "注意力参数容量",
-    "MoE 参数容量": "混合专家参数容量",
-    "Other 参数容量": "其他参数容量",
-    "有效主 KV Cache": "有效主 KV 缓存",
-    "有效 Indexer KV Cache": "有效 Indexer KV 缓存",
-    "Compressor State": "Compressor 状态",
-    "预分配 KV + State": "预分配 KV + 状态",
-    "Major": "主要",
-    "Auxiliary": "辅助",
-    "Token rows": "令牌行数",
-    "Causal raw-window pairs": "因果原始窗口对数",
-    "Capped short-compressed pairs": "封顶短压缩对数",
-    "Long-compressed pairs": "长压缩对数",
-    "Indexer scan pairs": "Indexer 扫描对数",
-    "Raw-window candidates": "原始窗口候选数",
-    "Short-compressed Top-K candidates": "短压缩 Top-K 候选数",
-    "Long-compressed candidates": "长压缩候选数",
-    "Indexer scan candidates": "Indexer 扫描候选数",
-    "window/short/long 层组合": "窗口/短压缩/长压缩层组合",
-    "Expert activation probability": "专家激活概率",
-    "Attention major FLOPs": "注意力主要 FLOPs",
-    "MoE major FLOPs": "混合专家主要 FLOPs",
-    "Other inference FLOPs": "其他推理 FLOPs",
-    "Total inference FLOPs": "总推理 FLOPs",
-    "Attention HBM traffic": "注意力 HBM 流量",
-    "MoE HBM traffic": "混合专家 HBM 流量",
-    "Other HBM traffic": "其他 HBM 流量",
-    "Total HBM traffic": "总 HBM 流量",
-    "Interconnect transfer": "卡间互连传输量",
-    "Arithmetic intensity": "算术强度",
-    "One-inference compute demand": "一次推理所需计算量",
-    "Required HBM at target": "目标时延所需 HBM 带宽",
-    "Prefill effective main KV": "预填充有效主 KV 缓存",
-    "Prefill effective Indexer KV": "预填充有效 Indexer KV 缓存",
-    "Prefill compressor states": "预填充 Compressor 状态",
-    "Prefill preallocated KV + states": "预填充预分配 KV + 状态",
-    "Decode effective main KV": "解码有效主 KV 缓存",
-    "Decode effective Indexer KV": "解码有效 Indexer KV 缓存",
-    "Decode compressor states": "解码 Compressor 状态",
-    "Decode preallocated KV + states": "解码预分配 KV + 状态",
-    "Total FLOPs/rank": "总 FLOPs/每 Rank",
-    "Total aggregate FLOPs": "总聚合 FLOPs",
-    "HBM read/rank": "HBM 读取量/每 Rank",
-    "HBM write/rank": "HBM 写入量/每 Rank",
-    "HBM total/rank": "HBM 总流量/每 Rank",
-    "Interconnect/rank": "卡间互连/每 Rank",
-    "Required compute at target": "目标时延所需算力",
-    "Compute lower bound": "算力下界",
-    "HBM lower bound": "HBM 下界",
-    "Interconnect lower bound": "卡间互连下界",
-    "token rows": "令牌行",
-    "pairs/sequence": "对数/序列",
-    "probability": "概率",
-    "FLOPs": "FLOPs",
-    "bytes": "字节",
-    "flops": "FLOPs",
-    "ranks": "Rank",
-    "sequences": "序列",
-    "tokens": "令牌",
-    "elements": "元素",
-    "heads": "头",
-    "groups": "组",
-    "experts": "专家",
-    "experts/token": "专家/令牌",
-    "tokens/entry": "令牌/条目",
-    "entries": "条目",
-    "streams": "流",
-    "iterations": "迭代",
-    "layers": "层",
-    "heads/rank": "头/Rank",
-    "experts/rank": "专家/Rank",
-    "groups/rank": "组/Rank",
-    "tokens/rank": "令牌/Rank",
-}
+CHART_CATEGORY_GAP = 30
 
 
 def display_label(value: str) -> str:
-    return DISPLAY_LABELS.get(value, value)
+    return value
 
 
 @dataclass(frozen=True)
@@ -541,8 +448,8 @@ def scenario_items(
     items.append(
         Item(
             "Attention",
-            "Q/K/O 投影",
-            "所有启用层",
+            "Q/K/O projections",
+            "All active layers",
             "2*rows*layers*(Wq_a+Wq_b+Wkv+Wo_a+Wo_b)",
             (
                 f"={rows_name}*TotalLayers*2*(HiddenSize*QLoraRank+"
@@ -587,9 +494,9 @@ def scenario_items(
     items.append(
         Item(
             "Attention",
-            "稀疏注意力 QK + AV",
-            "窗口/短压缩/长压缩层组合",
-            "4×batch×heads×head_dim×候选对数之和",
+            "Sparse attention QK + AV",
+            "Window/short/long layer mix",
+            "4*batch*heads*head_dim*sum(candidate pairs)",
             f"=4*{batch_name}*NumHeads*HeadDim*{xl_pair_total}",
             sparse_global,
             f"=4*{batch_name}*KernelLocalHeads*HeadDim*{xl_pair_total}",
@@ -636,8 +543,8 @@ def scenario_items(
     items.append(
         Item(
             "Attention",
-            "ratio-4 Indexer 投影",
-            "短压缩层",
+            "Ratio-4 Indexer projections",
+            "Short-compression layers",
             "2*rows*short_layers*(q_rank*index_heads*index_dim+hidden*index_heads)",
             (
                 f"=2*{rows_name}*ShortLayers*(QLoraRank*IndexHeads*IndexHeadDim+"
@@ -693,9 +600,9 @@ def scenario_items(
     items.append(
         Item(
             "Attention",
-            "ratio-4 Indexer 评分扫描",
-            "短压缩层",
-            "2×batch×short_layers×index_heads×index_dim×因果压缩对数",
+            "Ratio-4 Indexer score scan",
+            "Short-compression layers",
+            "2*batch*short_layers*index_heads*index_dim*causal compressed pairs",
             (
                 f"=2*{batch_name}*ShortLayers*IndexHeads*IndexHeadDim*"
                 f"{prefix}_IndexPairs"
@@ -747,8 +654,8 @@ def scenario_items(
     items.append(
         Item(
             "Attention",
-            "主 KV Compressor 投影",
-            "所有压缩 KV 层",
+            "Main KV compressor projections",
+            "All compressed-KV layers",
             "rows*(short_layers*8*hidden*head_dim+long_layers*4*hidden*head_dim)",
             (
                 f"={rows_name}*(ShortLayers*8*HiddenSize*HeadDim+"
@@ -789,8 +696,8 @@ def scenario_items(
     items.append(
         Item(
             "Attention",
-            "Indexer Compressor 投影",
-            "短压缩层",
+            "Indexer compressor projections",
+            "Short-compression layers",
             "rows*short_layers*8*hidden*index_dim",
             f"={rows_name}*ShortLayers*8*HiddenSize*IndexHeadDim",
             index_comp_global,
@@ -818,8 +725,8 @@ def scenario_items(
     items.append(
         Item(
             "MoE",
-            "Router 评分投影",
-            "所有启用层",
+            "Router score projection",
+            "All active layers",
             "2*rows*layers*hidden*routed_experts",
             f"=2*{rows_name}*TotalLayers*HiddenSize*RoutedExperts",
             router_global,
@@ -861,9 +768,9 @@ def scenario_items(
     items.append(
         Item(
             "MoE",
-            "Top-K 路由专家",
-            "所有启用层",
-            "rows×layers×top_k×(W1+W3+W2)，MAC=2 FLOPs",
+            "Top-K routed experts",
+            "All active layers",
+            "rows*layers*top_k*(W1+W3+W2), MAC=2 FLOPs",
             (
                 f"={rows_name}*TotalLayers*ActivatedExperts*6*"
                 "HiddenSize*ExpertInter"
@@ -924,9 +831,9 @@ def scenario_items(
     items.append(
         Item(
             "MoE",
-            "共享专家",
-            "所有启用层",
-            "rows×layers×shared_experts×(W1+W3+W2)，MAC=2 FLOPs",
+            "Shared expert",
+            "All active layers",
+            "rows*layers*shared_experts*(W1+W3+W2), MAC=2 FLOPs",
             (
                 f"={rows_name}*TotalLayers*SharedExperts*6*"
                 "HiddenSize*ExpertInter"
@@ -967,9 +874,9 @@ def scenario_items(
     items.append(
         Item(
             "Other",
-            "Hyper-Connections 与块归一化",
-            "所有启用层",
-            "每个块包含两条 HC 前/后路径；不含 Sinkhorn 特殊计算",
+            "Hyper-Connections and block norms",
+            "All active layers",
+            "Two HC pre/post paths per block; Sinkhorn special math excluded",
             (
                 f"=TotalLayers*2*(2*{rows_name}*HCSlots*HiddenSize*"
                 "((2+HCSlots)*HCSlots)+"
@@ -996,7 +903,7 @@ def scenario_items(
             hc_write,
             "=0",
             0,
-            "辅助",
+            "Auxiliary",
             "HC 计算为近似值；sigmoid/exp 仅做定性跟踪。",
         )
     )
@@ -1009,8 +916,8 @@ def scenario_items(
         Item(
             "Other",
             "LM Head",
-            "模型尾部",
-            "2×batch_or_decode_rows×hidden×vocab；Prefill 仅使用最后一个 Token",
+            "Tail",
+            "2*batch_or_decode_rows*hidden*vocab; prefill uses last token only",
             (
                 "=2*PrefillBatch*HiddenSize*VocabSize"
                 if mode == "prefill"
@@ -1068,9 +975,9 @@ def scenario_items(
     items.append(
         Item(
             "Communication",
-            "TP 集合通信",
-            "Embedding + 每个块 + LM Head",
-            "Ring AllReduce/AllGather 每 Rank 的发送与接收字节数",
+            "TP collectives",
+            "Embedding + each block + LM head",
+            "Ring AllReduce/AllGather send+receive bytes per rank",
             "=0",
             0,
             "=0",
@@ -1086,7 +993,7 @@ def scenario_items(
                 "LocalVocab*FP32Bytes"
             ),
             embedding_network + attention_network + moe_network + lm_network,
-            "辅助",
+            "Auxiliary",
             "TP=1 时为零。这是传输量，不是 HBM 流量。",
         )
     )
@@ -1285,17 +1192,17 @@ def parameter_components(p: Inputs, layers: LayerCounts) -> list[ParameterCompon
     tail_count_xl = "HCSlots*HCSlots*HiddenSize+HCSlots+1+HiddenSize"
 
     return [
-        ParameterComponent("Attention", "核心 Q/K/O 投影", core_global_count_xl, core_global_count, core_rank_count_xl, core_rank_count, core_global_bytes_xl, core_global_bytes, core_rank_bytes_xl, core_rank_bytes, "Wq_a/Wkv 复制；Q/O 输出维度按 TP 分片。"),
-        ParameterComponent("Attention", "KV 压缩器", compressor_count_xl, compressor_count, compressor_count_xl, compressor_count, compressor_bytes_xl, compressor_bytes, compressor_bytes_xl, compressor_bytes, "FP32 推理 Compressor 在每个 TP Rank 上复制。"),
-        ParameterComponent("Attention", "ratio-4 Indexer", index_global_count_xl, index_global_count, index_rank_count_xl, index_rank_count, index_global_bytes_xl, index_global_bytes, index_rank_bytes_xl, index_rank_bytes, "Indexer Q/权重投影按 TP 分片；Indexer Compressor 复制。"),
-        ParameterComponent("MoE", "路由专家", "TotalLayers*RoutedExperts*3*HiddenSize*ExpertInter", routed_global_count, "TotalLayers*LocalExperts*3*HiddenSize*ExpertInter", routed_rank_count, f"TotalLayers*RoutedExperts*{xl_expert_bytes()}", routed_global_bytes, f"TotalLayers*LocalExperts*{xl_expert_bytes()}", routed_rank_bytes, "FP4 路由专家在各 Rank 间均匀分片。"),
-        ParameterComponent("MoE", "共享专家", "TotalLayers*SharedExperts*3*HiddenSize*ExpertInter", shared_global_count, "TotalLayers*SharedExperts*3*HiddenSize*ExpertInter", shared_global_count, shared_bytes_xl, shared_bytes, shared_bytes_xl, shared_bytes, "FP8 共享专家在每个 Rank 上复制。"),
-        ParameterComponent("MoE", "Router 与哈希表", router_count_xl, router_count, router_count_xl, router_count, router_bytes_xl, weights["router_rank"], router_bytes_xl, weights["router_rank"], "Gate、偏置和令牌到专家的映射表在每个 Rank 上复制。"),
+        ParameterComponent("Attention", "Core Q/K/O projections", core_global_count_xl, core_global_count, core_rank_count_xl, core_rank_count, core_global_bytes_xl, core_global_bytes, core_rank_bytes_xl, core_rank_bytes, "Wq_a/Wkv 复制；Q/O 输出维度按 TP 分片。"),
+        ParameterComponent("Attention", "KV compressors", compressor_count_xl, compressor_count, compressor_count_xl, compressor_count, compressor_bytes_xl, compressor_bytes, compressor_bytes_xl, compressor_bytes, "FP32 推理 Compressor 在每个 TP Rank 上复制。"),
+        ParameterComponent("Attention", "Ratio-4 Indexers", index_global_count_xl, index_global_count, index_rank_count_xl, index_rank_count, index_global_bytes_xl, index_global_bytes, index_rank_bytes_xl, index_rank_bytes, "Indexer Q/权重投影按 TP 分片；Indexer Compressor 复制。"),
+        ParameterComponent("MoE", "Routed experts", "TotalLayers*RoutedExperts*3*HiddenSize*ExpertInter", routed_global_count, "TotalLayers*LocalExperts*3*HiddenSize*ExpertInter", routed_rank_count, f"TotalLayers*RoutedExperts*{xl_expert_bytes()}", routed_global_bytes, f"TotalLayers*LocalExperts*{xl_expert_bytes()}", routed_rank_bytes, "FP4 路由专家在各 Rank 间均匀分片。"),
+        ParameterComponent("MoE", "Shared experts", "TotalLayers*SharedExperts*3*HiddenSize*ExpertInter", shared_global_count, "TotalLayers*SharedExperts*3*HiddenSize*ExpertInter", shared_global_count, shared_bytes_xl, shared_bytes, shared_bytes_xl, shared_bytes, "FP8 共享专家在每个 Rank 上复制。"),
+        ParameterComponent("MoE", "Router and hash tables", router_count_xl, router_count, router_count_xl, router_count, router_bytes_xl, weights["router_rank"], router_bytes_xl, weights["router_rank"], "Gate、偏置和令牌到专家的映射表在每个 Rank 上复制。"),
         ParameterComponent("Other", "Embedding", "VocabSize*HiddenSize", p.vocab * p.hidden, "LocalVocab*HiddenSize", p.vocab / p.tp * p.hidden, "VocabSize*HiddenSize*BF16Bytes", p.vocab * p.hidden * p.bf16_bytes, "LocalVocab*HiddenSize*BF16Bytes", weights["embedding"], "Embedding 按词表维度并行。"),
-        ParameterComponent("Other", "LM Head", "VocabSize*HiddenSize", p.vocab * p.hidden, "LocalVocab*HiddenSize", p.vocab / p.tp * p.hidden, "VocabSize*HiddenSize*FP32Bytes", p.vocab * p.hidden * p.fp32_bytes, "LocalVocab*HiddenSize*FP32Bytes", weights["lm_head"], "FP32 推理 LM Head 按词表维度并行。"),
+        ParameterComponent("Other", "LM head", "VocabSize*HiddenSize", p.vocab * p.hidden, "LocalVocab*HiddenSize", p.vocab / p.tp * p.hidden, "VocabSize*HiddenSize*FP32Bytes", p.vocab * p.hidden * p.fp32_bytes, "LocalVocab*HiddenSize*FP32Bytes", weights["lm_head"], "FP32 推理 LM Head 按词表维度并行。"),
         ParameterComponent("Other", "Hyper-Connections", hc_count_xl, hc_count, hc_count_xl, hc_count, hc_bytes_xl, weights["hc_rank"], hc_bytes_xl, weights["hc_rank"], "HC 参数在每个 Rank 上复制；仅用于推理。"),
-        ParameterComponent("Other", "归一化与注意力 Sink", norm_global_count_xl, norm_global_count, norm_rank_count_xl, norm_rank_count, f"({norm_global_count_xl})*FP32Bytes", norm_global_count * p.fp32_bytes, f"({norm_rank_count_xl})*FP32Bytes", weights["norms_rank"], "仅本地注意力 Sink 向量按 TP 分片。"),
-        ParameterComponent("Other", "尾部 HC 与最终归一化", tail_count_xl, tail_count, tail_count_xl, tail_count, f"({tail_count_xl})*FP32Bytes", weights["tail_rank"], f"({tail_count_xl})*FP32Bytes", weights["tail_rank"], "模型尾部推理参数在每个 Rank 上复制。"),
+        ParameterComponent("Other", "Norms and attention sinks", norm_global_count_xl, norm_global_count, norm_rank_count_xl, norm_rank_count, f"({norm_global_count_xl})*FP32Bytes", norm_global_count * p.fp32_bytes, f"({norm_rank_count_xl})*FP32Bytes", weights["norms_rank"], "仅本地注意力 Sink 向量按 TP 分片。"),
+        ParameterComponent("Other", "Tail HC and final norm", tail_count_xl, tail_count, tail_count_xl, tail_count, f"({tail_count_xl})*FP32Bytes", weights["tail_rank"], f"({tail_count_xl})*FP32Bytes", weights["tail_rank"], "模型尾部推理参数在每个 Rank 上复制。"),
     ]
 
 
@@ -1395,57 +1302,57 @@ class CalculatorWriter:
         ws = self.workbook.add_worksheet("Parameters")
         ws.hide_gridlines(2)
         ws.freeze_panes(3, 0)
-        ws.write(0, 0, "DeepSeek V4 Flash - 可编辑架构参数", self.formats["title"])
+        ws.write(0, 0, "DeepSeek V4 Flash - Editable Architecture Parameters", self.formats["title"])
         ws.write(1, 0, "蓝色单元格为可编辑输入，绿色单元格为 Excel 派生公式。", self.formats["note"])
-        headers = ["类别", "参数", "Excel 名称", "数值", "说明"]
+        headers = ["Category", "Parameter", "Excel name", "Value", "Description"]
         for col, header in enumerate(headers):
             ws.write(2, col, header, self.formats["header"])
 
         records: list[tuple[str, str, str, float, str, str]] = [
-            ("并行", "TP1 对比规模", "TP1Size", self.p.tp, "ranks", "第一组张量并行配置。"),
-            ("并行", "TP8 对比规模", "TP8Size", self.p.comparison_tp, "ranks", "第二组张量并行配置，可编辑。"),
-            ("场景", "预填充批大小", "PrefillBatch", self.p.prefill_batch, "sequences", "可编辑的预填充批大小。"),
-            ("场景", "预填充序列长度", "PrefillSequence", self.p.prefill_sequence, "tokens", "一次预填充处理的提示词令牌数。"),
-            ("场景", "解码批大小", "DecodeBatch", self.p.decode_batch, "sequences", "可编辑的解码批大小。"),
-            ("场景", "每个解码步骤的令牌数", "DecodeTokens", self.p.decode_tokens, "tokens", "通常为 1；公式按解码上下文长度建模每个令牌。"),
-            ("场景", "解码上下文长度", "DecodeContext", self.p.decode_context, "tokens", "解码阶段可见的有效上下文长度。"),
-            ("场景", "最大预分配上下文长度", "MaxContext", self.p.max_context, "tokens", "KV 缓存的预分配容量。"),
-            ("模型", "隐藏维度", "HiddenSize", self.p.hidden, "elements", "Transformer 残差宽度。"),
-            ("模型", "词表大小", "VocabSize", self.p.vocab, "tokens", "Embedding 与 LM Head 使用的词表大小。"),
-            ("注意力", "查询头数", "NumHeads", self.p.heads, "heads", "全局 Query 头数量。"),
-            ("注意力", "头维度", "HeadDim", self.p.head_dim, "elements", "共享潜在 KV 宽度及每个 Query 头的宽度。"),
-            ("注意力", "RoPE 维度", "RopeDim", self.p.rope_dim, "elements", "HeadDim 中用于旋转位置编码的维度。"),
-            ("注意力", "Q LoRA 秩", "QLoraRank", self.p.q_rank, "elements", "Q 投影的低秩中间宽度。"),
-            ("注意力", "输出分组数", "OGroups", self.p.o_groups, "groups", "分组低秩输出投影的分组数量。"),
-            ("注意力", "输出 LoRA 秩", "OLoraRank", self.p.o_rank, "elements", "每个输出分组的低秩宽度。"),
-            ("混合专家", "路由专家数", "RoutedExperts", self.p.routed_experts, "experts", "每个专家块的全局路由专家数量。"),
-            ("混合专家", "激活专家数", "ActivatedExperts", self.p.activated_experts, "experts/token", "每个令牌选取的 Top-K 路由专家数量。"),
-            ("混合专家", "共享专家数", "SharedExperts", self.p.shared_experts, "experts", "每个专家块复制的共享专家数量。"),
-            ("混合专家", "专家中间维度", "ExpertInter", self.p.expert_inter, "elements", "SwiGLU 专家的中间维度。"),
-            ("缓存", "原始滑动窗口", "WindowSize", self.p.window, "tokens", "每层保留的原始 KV 位置数量。"),
-            ("缓存", "短压缩比例", "ShortRatio", self.p.short_ratio, "tokens/entry", "默认的 ratio-4 模式。"),
-            ("缓存", "长压缩比例", "LongRatio", self.p.long_ratio, "tokens/entry", "默认的 ratio-128 模式。"),
-            ("索引器", "索引头数", "IndexHeads", self.p.index_heads, "heads", "全局 ratio-4 Indexer 头数量。"),
-            ("索引器", "索引头维度", "IndexHeadDim", self.p.index_dim, "elements", "Indexer Q/K 的维度。"),
-            ("索引器", "Indexer Top-K", "IndexTopK", self.p.index_topk, "entries", "ratio-4 注意力保留的压缩条目数量。"),
-            ("HC", "HC 槽位数", "HCSlots", self.p.hc_slots, "streams", "Hyper-Connection 残差流数量。"),
-            ("HC", "Sinkhorn 迭代次数", "HCIters", self.p.hc_iters, "iterations", "HC 组合归一化的迭代次数。"),
-            ("路由", "哈希路由层数", "HashLayers", self.p.hash_layers, "layers", "使用令牌编号到专家编号的路由起始层数量。"),
-            ("数据类型", "BF16 字节数", "BF16Bytes", self.p.bf16_bytes, "bytes", "每个 BF16 元素占用的存储字节数。"),
-            ("数据类型", "FP32 字节数", "FP32Bytes", self.p.fp32_bytes, "bytes", "每个 FP32 元素占用的存储字节数。"),
-            ("数据类型", "FP8 字节数", "FP8Bytes", self.p.fp8_bytes, "bytes", "每个 FP8 元素占用的存储字节数。"),
-            ("数据类型", "FP4 字节数", "FP4Bytes", self.p.fp4_bytes, "bytes", "每个 FP4 元素的逻辑打包字节数。"),
-            ("数据类型", "Scale 字节数", "ScaleBytes", self.p.scale_bytes, "bytes", "E8M0 Scale 的存储字节数。"),
-            ("数据类型", "INT32 字节数", "INT32Bytes", self.p.int32_bytes, "bytes", "每个 INT32 元素占用的存储字节数。"),
-            ("数据类型", "INT64 字节数", "INT64Bytes", self.p.int64_bytes, "bytes", "每个 INT64 元素占用的存储字节数。"),
-            ("量化", "FP8 Scale 分块大小", "FP8Block", self.p.fp8_block, "elements", "二维 FP8 权重 Scale 的分块大小。"),
-            ("量化", "FP4 Scale 分块大小", "FP4Block", self.p.fp4_block, "elements", "沿 K 维度的 FP4 专家 Scale 分块大小。"),
-            ("内核", "稀疏注意力最小头数", "KernelMinHeads", self.p.kernel_min_heads, "heads", "当本地头数不足时，内核补齐到该头数。"),
-            ("硬件", "峰值算力", "PeakTFLOPs", self.p.peak_tflops, "TFLOP/s", "可编辑的示例硬件峰值算力。"),
-            ("硬件", "HBM 带宽", "HBMBandwidthGBps", self.p.hbm_gbps, "GB/s", "可编辑的持续/目标 HBM 带宽。"),
-            ("硬件", "卡间互连带宽", "InterconnectGBps", self.p.interconnect_gbps, "GB/s", "可编辑的有效双向互连带宽。"),
-            ("硬件", "预填充目标延迟", "PrefillTargetMs", self.p.prefill_target_ms, "ms", "仅用于推导所需 HBM 带宽和卡间互连带宽。"),
-            ("硬件", "解码目标延迟", "DecodeTargetMs", self.p.decode_target_ms, "ms", "仅用于推导所需 HBM 带宽和卡间互连带宽。"),
+            ("Parallel", "TP1 comparison size", "TP1Size", self.p.tp, "ranks", "第一组张量并行配置。"),
+            ("Parallel", "TP8 comparison size", "TP8Size", self.p.comparison_tp, "ranks", "第二组张量并行配置，可编辑。"),
+            ("Scenario", "Prefill batch size", "PrefillBatch", self.p.prefill_batch, "sequences", "可编辑的预填充批大小。"),
+            ("Scenario", "Prefill sequence length", "PrefillSequence", self.p.prefill_sequence, "tokens", "一次预填充处理的提示词令牌数。"),
+            ("Scenario", "Decode batch size", "DecodeBatch", self.p.decode_batch, "sequences", "可编辑的解码批大小。"),
+            ("Scenario", "Decode tokens per step", "DecodeTokens", self.p.decode_tokens, "tokens", "通常为 1；公式按解码上下文长度建模每个令牌。"),
+            ("Scenario", "Decode context", "DecodeContext", self.p.decode_context, "tokens", "解码阶段可见的有效上下文长度。"),
+            ("Scenario", "Maximum allocated context", "MaxContext", self.p.max_context, "tokens", "KV 缓存的预分配容量。"),
+            ("Model", "Hidden size", "HiddenSize", self.p.hidden, "elements", "Transformer 残差宽度。"),
+            ("Model", "Vocabulary size", "VocabSize", self.p.vocab, "tokens", "Embedding 与 LM Head 使用的词表大小。"),
+            ("Attention", "Query heads", "NumHeads", self.p.heads, "heads", "全局 Query 头数量。"),
+            ("Attention", "Head dimension", "HeadDim", self.p.head_dim, "elements", "共享潜在 KV 宽度及每个 Query 头的宽度。"),
+            ("Attention", "RoPE dimension", "RopeDim", self.p.rope_dim, "elements", "HeadDim 中用于旋转位置编码的维度。"),
+            ("Attention", "Q LoRA rank", "QLoraRank", self.p.q_rank, "elements", "Q 投影的低秩中间宽度。"),
+            ("Attention", "Output groups", "OGroups", self.p.o_groups, "groups", "分组低秩输出投影的分组数量。"),
+            ("Attention", "Output LoRA rank", "OLoraRank", self.p.o_rank, "elements", "每个输出分组的低秩宽度。"),
+            ("MoE", "Routed experts", "RoutedExperts", self.p.routed_experts, "experts", "每个专家块的全局路由专家数量。"),
+            ("MoE", "Activated experts", "ActivatedExperts", self.p.activated_experts, "experts/token", "每个令牌选取的 Top-K 路由专家数量。"),
+            ("MoE", "Shared experts", "SharedExperts", self.p.shared_experts, "experts", "每个专家块复制的共享专家数量。"),
+            ("MoE", "Expert intermediate size", "ExpertInter", self.p.expert_inter, "elements", "SwiGLU 专家的中间维度。"),
+            ("Cache", "Raw sliding window", "WindowSize", self.p.window, "tokens", "每层保留的原始 KV 位置数量。"),
+            ("Cache", "Short compression ratio", "ShortRatio", self.p.short_ratio, "tokens/entry", "默认的 ratio-4 模式。"),
+            ("Cache", "Long compression ratio", "LongRatio", self.p.long_ratio, "tokens/entry", "默认的 ratio-128 模式。"),
+            ("Indexer", "Indexer heads", "IndexHeads", self.p.index_heads, "heads", "全局 ratio-4 Indexer 头数量。"),
+            ("Indexer", "Indexer head dimension", "IndexHeadDim", self.p.index_dim, "elements", "Indexer Q/K 的维度。"),
+            ("Indexer", "Indexer Top-K", "IndexTopK", self.p.index_topk, "entries", "ratio-4 注意力保留的压缩条目数量。"),
+            ("HC", "HC slots", "HCSlots", self.p.hc_slots, "streams", "Hyper-Connection 残差流数量。"),
+            ("HC", "Sinkhorn iterations", "HCIters", self.p.hc_iters, "iterations", "HC 组合归一化的迭代次数。"),
+            ("Routing", "Hash-routed layers", "HashLayers", self.p.hash_layers, "layers", "使用令牌编号到专家编号的路由起始层数量。"),
+            ("DType", "BF16 bytes", "BF16Bytes", self.p.bf16_bytes, "bytes", "每个 BF16 元素占用的存储字节数。"),
+            ("DType", "FP32 bytes", "FP32Bytes", self.p.fp32_bytes, "bytes", "每个 FP32 元素占用的存储字节数。"),
+            ("DType", "FP8 bytes", "FP8Bytes", self.p.fp8_bytes, "bytes", "每个 FP8 元素占用的存储字节数。"),
+            ("DType", "FP4 bytes", "FP4Bytes", self.p.fp4_bytes, "bytes", "每个 FP4 元素的逻辑打包字节数。"),
+            ("DType", "Scale bytes", "ScaleBytes", self.p.scale_bytes, "bytes", "E8M0 Scale 的存储字节数。"),
+            ("DType", "INT32 bytes", "INT32Bytes", self.p.int32_bytes, "bytes", "每个 INT32 元素占用的存储字节数。"),
+            ("DType", "INT64 bytes", "INT64Bytes", self.p.int64_bytes, "bytes", "每个 INT64 元素占用的存储字节数。"),
+            ("Quantization", "FP8 scale block", "FP8Block", self.p.fp8_block, "elements", "二维 FP8 权重 Scale 的分块大小。"),
+            ("Quantization", "FP4 scale block", "FP4Block", self.p.fp4_block, "elements", "沿 K 维度的 FP4 专家 Scale 分块大小。"),
+            ("Kernel", "Minimum sparse-attention heads", "KernelMinHeads", self.p.kernel_min_heads, "heads", "当本地头数不足时，内核补齐到该头数。"),
+            ("Hardware", "Peak compute", "PeakTFLOPs", self.p.peak_tflops, "TFLOP/s", "可编辑的示例硬件峰值算力。"),
+            ("Hardware", "HBM bandwidth", "HBMBandwidthGBps", self.p.hbm_gbps, "GB/s", "可编辑的持续/目标 HBM 带宽。"),
+            ("Hardware", "Interconnect bandwidth", "InterconnectGBps", self.p.interconnect_gbps, "GB/s", "可编辑的有效双向互连带宽。"),
+            ("Hardware", "Prefill target latency", "PrefillTargetMs", self.p.prefill_target_ms, "ms", "仅用于推导所需 HBM 带宽和卡间互连带宽。"),
+            ("Hardware", "Decode target latency", "DecodeTargetMs", self.p.decode_target_ms, "ms", "仅用于推导所需 HBM 带宽和卡间互连带宽。"),
         ]
         row = 3
         for category, label, name, value, unit, description in records:
@@ -1459,23 +1366,23 @@ class CalculatorWriter:
             row += 1
 
         derived = [
-            ("派生", "有效层数", "TotalLayers", "=SUM(Layer_Config!$B$4:$B$67)", self.layers.total, "layers", "Layer_Config 中启用的层数。"),
-            ("派生", "仅窗口层数", "WindowLayers", '=COUNTIFS(Layer_Config!$B$4:$B$67,1,Layer_Config!$C$4:$C$67,"window")', self.layers.window, "layers", "启用的窗口模式层数。"),
-            ("派生", "短压缩层数", "ShortLayers", '=COUNTIFS(Layer_Config!$B$4:$B$67,1,Layer_Config!$C$4:$C$67,"short")', self.layers.short, "layers", "启用的 ratio-4/短压缩层数。"),
-            ("派生", "长压缩层数", "LongLayers", '=COUNTIFS(Layer_Config!$B$4:$B$67,1,Layer_Config!$C$4:$C$67,"long")', self.layers.long, "layers", "启用的 ratio-128/长压缩层数。"),
-            ("派生", "有效哈希层数", "ActiveHashLayers", '=COUNTIFS(Layer_Config!$B$4:$B$67,1,Layer_Config!$A$4:$A$67,"<"&HashLayers)', self.layers.hash, "layers", "层 ID 小于 HashLayers 且已启用的层数。"),
-            ("派生", "TP1 本地 Q 头数", "TP1LocalHeads", "=NumHeads/TP1Size", self.p.heads / self.p.tp, "heads/rank", "单个 TP1 Rank 上的 Q 头数。"),
-            ("派生", "TP1 内核本地头数", "TP1KernelLocalHeads", "=MAX(TP1LocalHeads,KernelMinHeads)", max(self.p.heads / self.p.tp, self.p.kernel_min_heads), "heads/rank", "补齐后的稀疏内核本地头数。"),
-            ("派生", "TP1 本地索引头数", "TP1LocalIndexHeads", "=IndexHeads/TP1Size", self.p.index_heads / self.p.tp, "heads/rank", "单个 TP1 Rank 上的 Indexer 头数。"),
-            ("派生", "TP1 本地专家数", "TP1LocalExperts", "=RoutedExperts/TP1Size", self.p.routed_experts / self.p.tp, "experts/rank", "单个 TP1 Rank 上的路由专家数。"),
-            ("派生", "TP1 本地输出分组数", "TP1LocalOGroups", "=OGroups/TP1Size", self.p.o_groups / self.p.tp, "groups/rank", "单个 TP1 Rank 上的输出分组数。"),
-            ("派生", "TP1 本地词表大小", "TP1LocalVocab", "=VocabSize/TP1Size", self.p.vocab / self.p.tp, "tokens/rank", "单个 TP1 Rank 上的词表行数。"),
-            ("派生", "TP8 本地 Q 头数", "TP8LocalHeads", "=NumHeads/TP8Size", self.p.heads / self.p.comparison_tp, "heads/rank", "单个 TP8 Rank 上的 Q 头数。"),
-            ("派生", "TP8 内核本地头数", "TP8KernelLocalHeads", "=MAX(TP8LocalHeads,KernelMinHeads)", max(self.p.heads / self.p.comparison_tp, self.p.kernel_min_heads), "heads/rank", "补齐后的稀疏内核本地头数。"),
-            ("派生", "TP8 本地索引头数", "TP8LocalIndexHeads", "=IndexHeads/TP8Size", self.p.index_heads / self.p.comparison_tp, "heads/rank", "单个 TP8 Rank 上的 Indexer 头数。"),
-            ("派生", "TP8 本地专家数", "TP8LocalExperts", "=RoutedExperts/TP8Size", self.p.routed_experts / self.p.comparison_tp, "experts/rank", "单个 TP8 Rank 上的路由专家数。"),
-            ("派生", "TP8 本地输出分组数", "TP8LocalOGroups", "=OGroups/TP8Size", self.p.o_groups / self.p.comparison_tp, "groups/rank", "单个 TP8 Rank 上的输出分组数。"),
-            ("派生", "TP8 本地词表大小", "TP8LocalVocab", "=VocabSize/TP8Size", self.p.vocab / self.p.comparison_tp, "tokens/rank", "单个 TP8 Rank 上的词表行数。"),
+            ("Derived", "Active layers", "TotalLayers", "=SUM(Layer_Config!$B$4:$B$67)", self.layers.total, "layers", "Layer_Config 中启用的层数。"),
+            ("Derived", "Window-only layers", "WindowLayers", '=COUNTIFS(Layer_Config!$B$4:$B$67,1,Layer_Config!$C$4:$C$67,"window")', self.layers.window, "layers", "启用的窗口模式层数。"),
+            ("Derived", "Short-compression layers", "ShortLayers", '=COUNTIFS(Layer_Config!$B$4:$B$67,1,Layer_Config!$C$4:$C$67,"short")', self.layers.short, "layers", "启用的 ratio-4/短压缩层数。"),
+            ("Derived", "Long-compression layers", "LongLayers", '=COUNTIFS(Layer_Config!$B$4:$B$67,1,Layer_Config!$C$4:$C$67,"long")', self.layers.long, "layers", "启用的 ratio-128/长压缩层数。"),
+            ("Derived", "Active hash layers", "ActiveHashLayers", '=COUNTIFS(Layer_Config!$B$4:$B$67,1,Layer_Config!$A$4:$A$67,"<"&HashLayers)', self.layers.hash, "layers", "层 ID 小于 HashLayers 且已启用的层数。"),
+            ("Derived", "TP1 local Q heads", "TP1LocalHeads", "=NumHeads/TP1Size", self.p.heads / self.p.tp, "heads/rank", "单个 TP1 Rank 上的 Q 头数。"),
+            ("Derived", "TP1 kernel local heads", "TP1KernelLocalHeads", "=MAX(TP1LocalHeads,KernelMinHeads)", max(self.p.heads / self.p.tp, self.p.kernel_min_heads), "heads/rank", "补齐后的稀疏内核本地头数。"),
+            ("Derived", "TP1 local index heads", "TP1LocalIndexHeads", "=IndexHeads/TP1Size", self.p.index_heads / self.p.tp, "heads/rank", "单个 TP1 Rank 上的 Indexer 头数。"),
+            ("Derived", "TP1 local experts", "TP1LocalExperts", "=RoutedExperts/TP1Size", self.p.routed_experts / self.p.tp, "experts/rank", "单个 TP1 Rank 上的路由专家数。"),
+            ("Derived", "TP1 local output groups", "TP1LocalOGroups", "=OGroups/TP1Size", self.p.o_groups / self.p.tp, "groups/rank", "单个 TP1 Rank 上的输出分组数。"),
+            ("Derived", "TP1 local vocabulary", "TP1LocalVocab", "=VocabSize/TP1Size", self.p.vocab / self.p.tp, "tokens/rank", "单个 TP1 Rank 上的词表行数。"),
+            ("Derived", "TP8 local Q heads", "TP8LocalHeads", "=NumHeads/TP8Size", self.p.heads / self.p.comparison_tp, "heads/rank", "单个 TP8 Rank 上的 Q 头数。"),
+            ("Derived", "TP8 kernel local heads", "TP8KernelLocalHeads", "=MAX(TP8LocalHeads,KernelMinHeads)", max(self.p.heads / self.p.comparison_tp, self.p.kernel_min_heads), "heads/rank", "补齐后的稀疏内核本地头数。"),
+            ("Derived", "TP8 local index heads", "TP8LocalIndexHeads", "=IndexHeads/TP8Size", self.p.index_heads / self.p.comparison_tp, "heads/rank", "单个 TP8 Rank 上的 Indexer 头数。"),
+            ("Derived", "TP8 local experts", "TP8LocalExperts", "=RoutedExperts/TP8Size", self.p.routed_experts / self.p.comparison_tp, "experts/rank", "单个 TP8 Rank 上的路由专家数。"),
+            ("Derived", "TP8 local output groups", "TP8LocalOGroups", "=OGroups/TP8Size", self.p.o_groups / self.p.comparison_tp, "groups/rank", "单个 TP8 Rank 上的输出分组数。"),
+            ("Derived", "TP8 local vocabulary", "TP8LocalVocab", "=VocabSize/TP8Size", self.p.vocab / self.p.comparison_tp, "tokens/rank", "单个 TP8 Rank 上的词表行数。"),
         ]
         for category, label, name, formula, value, unit, description in derived:
             ws.write(row, 0, category, self.formats["text"])
@@ -1498,9 +1405,9 @@ class CalculatorWriter:
         ws = self.workbook.add_worksheet("Layer_Config")
         ws.hide_gridlines(2)
         ws.freeze_panes(3, 0)
-        ws.write(0, 0, "逐层注意力与路由配置", self.formats["title"])
+        ws.write(0, 0, "Per-Layer Attention and Routing Configuration", self.formats["title"])
         ws.write(1, 0, "可编辑启用状态和模式；压缩比例与路由行为会自动更新。", self.formats["note"])
-        headers = ["层 ID", "启用", "模式", "压缩比例", "注意力行为", "路由行为"]
+        headers = ["Layer ID", "Active", "Mode", "Compression ratio", "Attention behavior", "Routing behavior"]
         for col, header in enumerate(headers):
             ws.write(2, col, header, self.formats["header"])
         for index in range(MAX_LAYER_ROWS):
@@ -1513,11 +1420,11 @@ class CalculatorWriter:
             ws.write(row, 2, mode, self.formats["input"])
             ratio_formula = f'=IF(C{row + 1}="window",0,IF(C{row + 1}="short",ShortRatio,LongRatio))'
             ws.write_formula(row, 3, ratio_formula, self.formats["derived"], ratio if active else 0)
-            behavior_formula = f'=IF(B{row + 1}=0,"未启用",IF(C{row + 1}="window","原始滑动窗口",IF(C{row + 1}="short","压缩 KV + Indexer Top-K","确定性压缩 KV")))'
-            behavior = "未启用" if not active else "原始滑动窗口" if mode == "window" else "压缩 KV + Indexer Top-K" if mode == "short" else "确定性压缩 KV"
+            behavior_formula = f'=IF(B{row + 1}=0,"inactive",IF(C{row + 1}="window","raw sliding window",IF(C{row + 1}="short","compressed KV + Indexer Top-K","deterministic compressed KV")))'
+            behavior = "inactive" if not active else "raw sliding window" if mode == "window" else "compressed KV + Indexer Top-K" if mode == "short" else "deterministic compressed KV"
             ws.write_formula(row, 4, behavior_formula, self.formats["text"], behavior)
-            routing_formula = f'=IF(B{row + 1}=0,"未启用",IF(A{row + 1}<HashLayers,"哈希","评分"))'
-            routing = "未启用" if not active else "哈希" if index < self.p.hash_layers else "评分"
+            routing_formula = f'=IF(B{row + 1}=0,"inactive",IF(A{row + 1}<HashLayers,"hash","score"))'
+            routing = "inactive" if not active else "hash" if index < self.p.hash_layers else "score"
             ws.write_formula(row, 5, routing_formula, self.formats["text"], routing)
         ws.data_validation(3, 1, 3 + MAX_LAYER_ROWS - 1, 1, {"validate": "list", "source": [0, 1]})
         ws.data_validation(3, 2, 3 + MAX_LAYER_ROWS - 1, 2, {"validate": "list", "source": ["window", "short", "long"]})
@@ -1857,7 +1764,7 @@ class InferenceComparisonWriter(CalculatorWriter):
         ws.write_row(
             2,
             0,
-            ["辅助指标", "数值", "单位", "说明"],
+            ["Helper metric", "Value", "Unit", "Description"],
             self.formats["header"],
         )
         descriptions = {
@@ -1916,7 +1823,7 @@ class InferenceComparisonWriter(CalculatorWriter):
         ws.write(
             0,
             0,
-            f"{'8K 预填充' if is_prefill else '1M 上下文解码'} - TP1 与 TP8 推理对比",
+            f"{'8K Prefill' if is_prefill else '1M-context Decode'} - TP1 vs TP8 inference comparison",
             self.formats["title"],
         )
         ws.write(
@@ -1933,24 +1840,24 @@ class InferenceComparisonWriter(CalculatorWriter):
         detail_first_excel = detail_first_row + 1
         detail_last_excel = detail_last_row + 1
         headers = [
-            "类别",
-            "算子/项目",
-            "层范围",
+            "Category",
+            "Operator/item",
+            "Layer scope",
             "TP1 FLOPs",
             "TP8 FLOPs/rank",
             "TP1 HBM/rank",
             "TP8 HBM/rank",
-            "TP1 卡间互连",
-            "TP8 卡间互连/rank",
-            "统计类型",
-            "说明",
+            "TP1 Interconnect",
+            "TP8 Interconnect/rank",
+            "Accounting",
+            "Notes",
         ]
         ws.merge_range(
             detail_header_row - 1,
             0,
             detail_header_row - 1,
             len(headers) - 1,
-            "推理计算明细",
+            "Inference calculation detail",
             self.formats["section"],
         )
         ws.write_row(detail_header_row, 0, headers, self.formats["header"])
@@ -2071,12 +1978,12 @@ class InferenceComparisonWriter(CalculatorWriter):
         ws.set_column(raw_global_col, raw_tp8_hbm_col, None, None, {"hidden": True})
 
         summary_start = helper_end + 1
-        ws.merge_range(summary_start, 0, summary_start, 2, "场景汇总", self.formats["section"])
+        ws.merge_range(summary_start, 0, summary_start, 2, "Scenario summary", self.formats["section"])
         summary_header = summary_start + 1
         ws.write_row(
             summary_header,
             0,
-            ["指标", "TP1", "TP8/每 Rank"],
+            ["Metric", "TP1", "TP8/rank"],
             self.formats["header"],
         )
 
@@ -2229,21 +2136,21 @@ class InferenceComparisonWriter(CalculatorWriter):
                 0,
                 start_row,
                 7,
-                f"参数与缓存：{('8K 预填充' if mode == 'prefill' else '1M 解码')} 参数与容量",
+                f"Parameters and cache: {('8K Prefill' if mode == 'prefill' else '1M-context Decode')} parameters and capacity",
                 self.formats["section"],
             )
             detail_header = start_row + 1
             detail_first_row = detail_header + 1
             detail_last_row = detail_first_row + len(tp1_components) - 1
             detail_headers = [
-                "大类",
-                "参数组件",
-                "全局参数量",
-                "TP1 参数量/rank",
-                "TP8 参数量/rank",
-                "TP1 容量/rank",
-                "TP8 容量/rank",
-                "说明",
+                "Category",
+                "Parameter component",
+                "Global parameter count",
+                "TP1 parameter count/rank",
+                "TP8 parameter count/rank",
+                "TP1 capacity/rank",
+                "TP8 capacity/rank",
+                "Notes",
             ]
             ws.write_row(detail_header, 0, detail_headers, self.formats["header"])
             raw_global_count_col = 32
@@ -2334,16 +2241,16 @@ class InferenceComparisonWriter(CalculatorWriter):
                 0,
                 summary_start,
                 4,
-                "参数量与参数容量汇总",
+                "Parameter count and capacity summary",
                 self.formats["section"],
             )
             summary_header = summary_start + 1
             summary_headers = [
-                "大类",
-                "TP1 参数量/rank",
-                "TP8 参数量/rank",
-                "TP1 容量/rank",
-                "TP8 容量/rank",
+                "Category",
+                "TP1 parameter count/rank",
+                "TP8 parameter count/rank",
+                "TP1 capacity/rank",
+                "TP8 capacity/rank",
             ]
             ws.write_row(summary_header, 0, summary_headers, self.formats["header"])
             detail_first_excel = detail_first_row + 1
@@ -2477,11 +2384,11 @@ class InferenceComparisonWriter(CalculatorWriter):
                 0,
                 cache_start,
                 3,
-                "当前场景 KV 缓存与 Compressor 状态（每 Rank，TP 间复制）",
+                "Current scenario KV cache and Compressor state (per Rank, replicated across TP)",
                 self.formats["section"],
             )
             cache_header = cache_start + 1
-            cache_headers = ["项目", "TP1/rank", "TP8/rank", "说明"]
+            cache_headers = ["Item", "TP1/rank", "TP8/rank", "Notes"]
             ws.write_row(cache_header, 0, cache_headers, self.formats["header"])
             if mode == "prefill":
                 cache_specs = [
@@ -2549,27 +2456,27 @@ class InferenceComparisonWriter(CalculatorWriter):
                 0,
                 rank_start,
                 9,
-                "单 Rank 设备驻留容量（默认均匀分片）",
+                "Per-rank device resident capacity (default even sharding)",
                 self.formats["section"],
             )
             rank_header = rank_start + 1
             rank_headers = [
-                "配置",
+                "Configuration",
                 "Rank",
-                "注意力参数",
-                "混合专家参数",
-                "其他参数",
-                "参数总计",
-                "当前场景 KV+状态",
-                "总驻留",
-                "逻辑参数量",
-                "有效",
+                "Attention parameters",
+                "MoE parameters",
+                "Other parameters",
+                "Total parameters",
+                "Current scenario KV+state",
+                "Total resident",
+                "Logical parameter count",
+                "Status",
             ]
             ws.write_row(rank_header, 0, rank_headers, self.formats["header"])
             rank_row = rank_header + 1
             for label, p_config in (("TP1", self.p_tp1), ("TP8", self.p_tp8)):
                 ws.write(rank_row, 0, label, self.formats["text"])
-                ws.write(rank_row, 1, "任一 Rank", self.formats["text"])
+                ws.write(rank_row, 1, "Any Rank", self.formats["text"])
                 category_refs = [
                     local_memory_refs[(label, "Attention Parameter Capacity")],
                     local_memory_refs[(label, "MoE Parameter Capacity")],
@@ -2616,7 +2523,7 @@ class InferenceComparisonWriter(CalculatorWriter):
                     self._unit_number_format("number", "G"),
                     category_values["Total"][f"{label.lower()}_count"] / 1e9,
                 )
-                ws.write(rank_row, 9, f"{p_config.tp} 个 Rank 均相同", self.formats["text"])
+                ws.write(rank_row, 9, f"All {p_config.tp} ranks identical", self.formats["text"])
                 rank_row += 1
             ws.add_table(
                 rank_header,
@@ -2642,38 +2549,38 @@ class InferenceComparisonWriter(CalculatorWriter):
 
     def write_dtype(self) -> None:
         dtype_rows = [
-            ("全局配置", "torch_dtype / 主干激活", "BF16", "BF16", "config.json 的 torch_dtype=bfloat16；隐藏状态与残差主路径使用 BF16。"),
-            ("全局配置", "普通量化线性层", "FP8 E4M3 + FP8 E8M0 缩放因子", "动态 FP8 激活量化", "quantization_config：quant_method=fp8，fmt=e4m3，scale_fmt=ue8m0。"),
-            ("所有层 0-42", "注意力主投影 wq_a/wq_b/wkv/wo_b", "FP8 E4M3 + FP8 E8M0 缩放因子", "FP8 GEMM；输入由 BF16 动态量化", "大多数注意力线性权重。"),
-            ("所有层 0-42", "注意力输出投影 wo_a", "BF16", "BF16 张量积（einsum）", "检查点中为 FP8，转换后在推理实现中按 BF16 使用。"),
-            ("所有层 0-42", "RMSNorm 权重与归一化", "权重 BF16；实现参数 FP32", "FP32 计算，输出回 BF16", "Norm 计算先转 FP32 以提高稳定性。"),
-            ("ratio-4 / ratio-128 层", "主 Compressor wkv/wgate/ape", "检查点主要为 BF16；实现参数 FP32", "FP32 压缩/softmax", "Compressor 参数在推理实现中提升到 FP32。"),
-            ("ratio-4 层", "Indexer 投影与评分", "wq_b FP8；weights_proj BF16", "QAT/FP4 模拟 QKV；评分 FP32", "仅 ratio-4 层启用 Indexer。"),
-            ("所有层 0-42", "路由专家 w1/w2/w3", "FP4 E2M1 打包 + FP8 E8M0 缩放因子", "FP4 GEMM；SwiGLU FP32；输出回 BF16", "专家数据类型为 fp4；每个令牌激活 6 个路由专家。"),
-            ("所有层 0-42", "共享专家 w1/w2/w3", "FP8 E4M3 + FP8 E8M0 缩放因子", "FP8 GEMM；SwiGLU FP32", "每层 1 个共享专家，跨 TP Rank 复制。"),
-            ("所有层 0-42", "Router 分数/路由权重", "偏置 FP32；哈希表 INT32", "FP32", "sqrt(softplus) 评分、Top-K 和归一化在 FP32 中完成。"),
-            ("第 0-2 层", "哈希路由表", "INT32", "INT32 索引", "前 3 层使用令牌编号到专家编号的预计算路由。"),
-            ("所有层 0-42", "mHC 参数 / 注意力 Sink", "FP32", "FP32", "HC 混合、Sinkhorn 与 Sink 参数使用 FP32。"),
-            ("所有层 0-42", "KV 缓存", "BF16", "BF16；部分非 RoPE 维度使用 FP8 模拟", "当前推理实现中的 KV 缓存为 BF16。"),
-            ("模型尾部", "最终归一化 / HC Head", "FP32 推理参数", "FP32 计算，输出回 BF16", "最终 HC 归约与 RMSNorm。"),
-            ("模型尾部", "LM Head / Logits", "checkpoint BF16；实现参数 FP32", "FP32 线性层与 Logits", "词表并行；Logits 以 FP32 计算。"),
+            ("Global config", "torch_dtype / main activations", "BF16", "BF16", "config.json 的 torch_dtype=bfloat16；隐藏状态与残差主路径使用 BF16。"),
+            ("Global config", "Standard quantized linear layers", "FP8 E4M3 + FP8 E8M0 scale factors", "Dynamic FP8 activation quantization", "quantization_config：quant_method=fp8，fmt=e4m3，scale_fmt=ue8m0。"),
+            ("All layers 0-42", "Main attention projections wq_a/wq_b/wkv/wo_b", "FP8 E4M3 + FP8 E8M0 scale factors", "FP8 GEMM; BF16 input dynamically quantized", "大多数注意力线性权重。"),
+            ("All layers 0-42", "Attention output projection wo_a", "BF16", "BF16 tensor product (einsum)", "检查点中为 FP8，转换后在推理实现中按 BF16 使用。"),
+            ("All layers 0-42", "RMSNorm weights and normalization", "BF16 weights; FP32 implementation parameters", "FP32 compute, output cast to BF16", "Norm 计算先转 FP32 以提高稳定性。"),
+            ("Ratio-4 / ratio-128 layers", "Main Compressor wkv/wgate/ape", "Checkpoint mainly BF16; FP32 implementation parameters", "FP32 compression/softmax", "Compressor 参数在推理实现中提升到 FP32。"),
+            ("Ratio-4 layers", "Indexer projections and scoring", "wq_b FP8; weights_proj BF16", "QAT/FP4 simulated QKV; FP32 scoring", "仅 ratio-4 层启用 Indexer。"),
+            ("All layers 0-42", "Routed experts w1/w2/w3", "FP4 E2M1 packed + FP8 E8M0 scale factors", "FP4 GEMM; SwiGLU FP32; output cast to BF16", "专家数据类型为 fp4；每个令牌激活 6 个路由专家。"),
+            ("All layers 0-42", "Shared experts w1/w2/w3", "FP8 E4M3 + FP8 E8M0 scale factors", "FP8 GEMM; SwiGLU FP32", "每层 1 个共享专家，跨 TP Rank 复制。"),
+            ("All layers 0-42", "Router scores/routing weights", "FP32 bias; INT32 hash table", "FP32", "sqrt(softplus) 评分、Top-K 和归一化在 FP32 中完成。"),
+            ("Layers 0-2", "Hash routing table", "INT32", "INT32 indexing", "前 3 层使用令牌编号到专家编号的预计算路由。"),
+            ("All layers 0-42", "mHC parameters / attention sinks", "FP32", "FP32", "HC 混合、Sinkhorn 与 Sink 参数使用 FP32。"),
+            ("All layers 0-42", "KV cache", "BF16", "BF16; partial non-RoPE dimensions simulated with FP8", "当前推理实现中的 KV 缓存为 BF16。"),
+            ("Model tail", "Final normalization / HC head", "FP32 inference parameters", "FP32 compute, output cast to BF16", "最终 HC 归约与 RMSNorm。"),
+            ("Model tail", "LM head / Logits", "Checkpoint BF16; FP32 implementation parameters", "FP32 linear layer and Logits", "词表并行；Logits 以 FP32 计算。"),
         ]
-        module_headers = ["适用范围", "模块/张量", "落盘/参数存储", "激活/中间计算", "说明"]
+        module_headers = ["Scope", "Module/tensor", "Checkpoint/parameter storage", "Activation/intermediate computation", "Notes"]
         layer_headers = [
-            "层 ID",
-            "注意力模式",
-            "压缩比例",
-            "路由模式",
-            "隐藏状态 / 残差",
-            "注意力主投影",
-            "路由专家",
-            "共享专家",
-            "归一化 / HC / Router 计算",
+            "Layer ID",
+            "Attention mode",
+            "Compression ratio",
+            "Routing mode",
+            "Hidden state / residual",
+            "Main attention projections",
+            "Routed experts",
+            "Shared experts",
+            "Normalization / HC / Router computation",
         ]
         ws = self.workbook.add_worksheet("dtype")
         ws.hide_gridlines(2)
         ws.freeze_panes(3, 0)
-        ws.write(0, 0, "推理路径数据类型（dtype）总表", self.formats["title"])
+        ws.write(0, 0, "Inference-Path Data Types (dtype) Overview", self.formats["title"])
         ws.write(
             1,
             0,
@@ -2687,7 +2594,7 @@ class InferenceComparisonWriter(CalculatorWriter):
             0,
             module_section,
             4,
-            "数据类型（dtype）：模块级存储与计算类型",
+            "Data types (dtype): module-level storage and compute types",
             self.formats["section"],
         )
         module_header = module_section + 1
@@ -2714,7 +2621,7 @@ class InferenceComparisonWriter(CalculatorWriter):
             0,
             layer_section,
             8,
-            "43 层逐层 dtype、注意力与路由模式",
+            "43-layer dtype, attention, and routing modes",
             self.formats["section"],
         )
         layer_header = layer_section + 1
@@ -2723,17 +2630,17 @@ class InferenceComparisonWriter(CalculatorWriter):
         ws.write_row(layer_header, 0, layer_headers, self.formats["header"])
         for layer_id, ratio in enumerate(self.ratios[: self.layers.total]):
             if ratio == 0:
-                attention_mode = "窗口"
+                attention_mode = "Window"
             elif ratio == self.p.short_ratio:
-                attention_mode = "短压缩稀疏"
+                attention_mode = "Short-compression sparse"
             elif ratio == self.p.long_ratio:
-                attention_mode = "长压缩"
+                attention_mode = "Long-compression"
             else:
-                attention_mode = "自定义比例"
+                attention_mode = "Custom ratio"
             router_mode = (
-                "哈希路由（INT32）"
+                "Hash routing (INT32)"
                 if layer_id < self.p.hash_layers
-                else "评分路由（FP32）"
+                else "Score routing (FP32)"
             )
             ws.write_row(
                 layer_first_row + layer_id,
@@ -2774,23 +2681,23 @@ class InferenceComparisonWriter(CalculatorWriter):
     def write_methodology(self) -> None:
         ws = self.workbook.add_worksheet("Methodology")
         ws.hide_gridlines(2)
-        ws.write(0, 0, "方法与统计边界", self.formats["title"])
+        ws.write(0, 0, "Methodology and Limits", self.formats["title"])
         rows = [
-            ("统计范围", "仅统计 43 层主推理路径；不含 MTP、反向传播、梯度、优化器状态和训练激活。Layer_Config 最多可维护 64 层。"),
-            ("计算量", "矩阵乘加按 2 FLOPs 计。注意力与 MoE 主要 GEMM 使用显式公式；HC 与逐元素运算为近似估计。"),
-            ("预填充注意力", "使用因果候选对数量，不直接使用 S×S；原始窗口、压缩 KV 和 Indexer 扫描分别统计。"),
-            ("解码注意力", "每个解码令牌在解码上下文长度下建模；ratio-4 主注意力取 Top-K，但 Indexer 需要扫描全部已完成压缩项。"),
-            ("混合专家", "每个令牌执行 Top-K 路由专家和共享专家。HBM 参数读取按专家至少被命中一次的概率估计。"),
-            ("HBM 流量", "统计本地逻辑参数、激活和 KV 的读取与写入；不模拟 L2 命中、算子融合、分块、Allocator 或厂商 Kernel 内部复用。"),
-            ("参数容量", "按推理运行 dtype 估算：路由专家 FP4、多数投影 FP8、Wo_a BF16、Compressor FP32、LM Head FP32，并计入量化 Scale。"),
-            ("KV 缓存", "有效容量表示已填充项；预分配容量使用 MaxContext。当前实现的 KV 和 Compressor 状态在每个 TP Rank 上完整复制。"),
-            ("TP 分片", "Wq_a、Wkv、Compressor、Router、HC、共享专家复制；Q/O 部分投影、路由专家、Embedding 和 LM Head 按 TP 分片。"),
-            ("卡间通信", "Ring 公式给出每 Rank 发送加接收的数据量。TP1 为 0；该数值是传输量，不是实测 GB/s 或时延。"),
-            ("硬件下界", "计算/HBM/互连下界使用参数页中的可编辑硬件峰值并假设互不重叠；真实运行时间必须通过性能分析验证。"),
-            ("单位", "FLOPs 使用 M/G/T/P 十进制单位；容量与流量使用 KB/MB/GB/TB，1 GB=10^9 字节；场景页容量明细保留原始公式。"),
-            ("公式维护", "蓝色单元格为输入；结果由 Excel 公式计算并在打开时完整重算。隐藏列保留原始未缩放值，便于审计。"),
+            ("Scope", "仅统计 43 层主推理路径；不含 MTP、反向传播、梯度、优化器状态和训练激活。Layer_Config 最多可维护 64 层。"),
+            ("FLOPs", "矩阵乘加按 2 FLOPs 计。注意力与 MoE 主要 GEMM 使用显式公式；HC 与逐元素运算为近似估计。"),
+            ("Prefill attention", "使用因果候选对数量，不直接使用 S×S；原始窗口、压缩 KV 和 Indexer 扫描分别统计。"),
+            ("Decode attention", "每个解码令牌在解码上下文长度下建模；ratio-4 主注意力取 Top-K，但 Indexer 需要扫描全部已完成压缩项。"),
+            ("MoE", "每个令牌执行 Top-K 路由专家和共享专家。HBM 参数读取按专家至少被命中一次的概率估计。"),
+            ("HBM traffic", "统计本地逻辑参数、激活和 KV 的读取与写入；不模拟 L2 命中、算子融合、分块、Allocator 或厂商 Kernel 内部复用。"),
+            ("Memory", "按推理运行 dtype 估算：路由专家 FP4、多数投影 FP8、Wo_a BF16、Compressor FP32、LM Head FP32，并计入量化 Scale。"),
+            ("KV cache", "有效容量表示已填充项；预分配容量使用 MaxContext。当前实现的 KV 和 Compressor 状态在每个 TP Rank 上完整复制。"),
+            ("TP", "Wq_a、Wkv、Compressor、Router、HC、共享专家复制；Q/O 部分投影、路由专家、Embedding 和 LM Head 按 TP 分片。"),
+            ("Communication", "Ring 公式给出每 Rank 发送加接收的数据量。TP1 为 0；该数值是传输量，不是实测 GB/s 或时延。"),
+            ("Roofline", "计算/HBM/互连下界使用参数页中的可编辑硬件峰值并假设互不重叠；真实运行时间必须通过性能分析验证。"),
+            ("Units", "FLOPs 使用 M/G/T/P 十进制单位；容量与流量使用 KB/MB/GB/TB，1 GB=10^9 字节；场景页容量明细保留原始公式。"),
+            ("Formula maintenance", "蓝色单元格为输入；结果由 Excel 公式计算并在打开时完整重算。隐藏列保留原始未缩放值，便于审计。"),
         ]
-        ws.write_row(2, 0, ["主题", "定义"], self.formats["header"])
+        ws.write_row(2, 0, ["Topic", "Definition"], self.formats["header"])
         for row, (topic, definition) in enumerate(rows, start=3):
             ws.write(row, 0, topic, self.formats["text"])
             ws.write(row, 1, definition, self.formats["text"])
@@ -2800,7 +2707,7 @@ class InferenceComparisonWriter(CalculatorWriter):
     def write_comparison(self, memory: dict[str, float]) -> None:
         ws = self.workbook.add_worksheet("Comparison")
         ws.hide_gridlines(2)
-        ws.write(0, 0, "TP1 / TP8 推理资源对比图", self.formats["title"])
+        ws.write(0, 0, "TP1 / TP8 Inference Resource Comparison Charts", self.formats["title"])
         ws.write(
             1,
             0,
@@ -2900,10 +2807,10 @@ class InferenceComparisonWriter(CalculatorWriter):
             rows.append((label, entries, note, total))
 
         for label, source_label, category in (
-            ("Attention 计算量", "Attention major FLOPs", "Attention"),
-            ("MoE 计算量", "MoE major FLOPs", "MoE"),
-            ("Other 推理计算量", "Other inference FLOPs", "Other"),
-            ("总推理计算量", "Total inference FLOPs", "Total"),
+            ("Attention FLOPs", "Attention major FLOPs", "Attention"),
+            ("MoE FLOPs", "MoE major FLOPs", "MoE"),
+            ("Other inference FLOPs", "Other inference FLOPs", "Other"),
+            ("Total inference FLOPs", "Total inference FLOPs", "Total"),
         ):
             if category == "Attention":
                 values = (
@@ -2942,10 +2849,10 @@ class InferenceComparisonWriter(CalculatorWriter):
             )
 
         for label, source_label, category in (
-            ("Attention HBM 流量", "Attention HBM traffic", "Attention"),
-            ("MoE HBM 流量", "MoE HBM traffic", "MoE"),
-            ("Other HBM 流量", "Other HBM traffic", "Other"),
-            ("总 HBM 流量", "Total HBM traffic", "Total"),
+            ("Attention HBM traffic", "Attention HBM traffic", "Attention"),
+            ("MoE HBM traffic", "MoE HBM traffic", "MoE"),
+            ("Other HBM traffic", "Other HBM traffic", "Other"),
+            ("Total HBM traffic", "Total HBM traffic", "Total"),
         ):
             values = tuple(
                 (
@@ -2969,9 +2876,9 @@ class InferenceComparisonWriter(CalculatorWriter):
             )
 
         for label, source_label, category in (
-            ("Attention 所需 HBM 带宽", "Attention HBM traffic", "Attention"),
-            ("MoE 所需 HBM 带宽", "MoE HBM traffic", "MoE"),
-            ("Other 所需 HBM 带宽", "Other HBM traffic", "Other"),
+            ("Attention required HBM bandwidth", "Attention HBM traffic", "Attention"),
+            ("MoE required HBM bandwidth", "MoE HBM traffic", "MoE"),
+            ("Other required HBM bandwidth", "Other HBM traffic", "Other"),
         ):
             prefill_values = (
                 category_hbm(pf1, category)
@@ -3023,7 +2930,7 @@ class InferenceComparisonWriter(CalculatorWriter):
             dc8["total_per_rank_flops"] / (self.p.decode_target_ms / 1000) / 1e12,
         )
         add_row(
-            "目标时延所需计算性能",
+            "Compute required at target latency",
             [
                 (
                     f"{scenario_ref('PF', 'TP1', 'Total inference FLOPs')}/(PrefillTargetMs/1000)/1E12",
@@ -3056,7 +2963,7 @@ class InferenceComparisonWriter(CalculatorWriter):
             dc8["total_interconnect_bytes_per_rank"],
         )
         add_row(
-            "卡间互连传输量",
+            "Interconnect transfer",
             [
                 (scenario_ref("PF", "TP1", "Interconnect transfer"), interconnect_values[0], "bytes"),
                 (scenario_ref("PF", "TP8", "Interconnect transfer"), interconnect_values[1], "bytes"),
@@ -3072,7 +2979,7 @@ class InferenceComparisonWriter(CalculatorWriter):
             interconnect_values[3] / (self.p.decode_target_ms / 1000) / 1e9,
         )
         add_row(
-            "目标时延所需互连带宽",
+            "Required interconnect bandwidth",
             [
                 (
                     f"{scenario_ref('PF', 'TP1', 'Interconnect transfer')}/(PrefillTargetMs/1000)/1E9",
@@ -3099,14 +3006,14 @@ class InferenceComparisonWriter(CalculatorWriter):
         )
 
         for label, category, kind, note in (
-            ("Attention 逻辑参数量", "Attention", "params", "注意力投影、Compressor、Indexer。"),
-            ("MoE 逻辑参数量", "MoE", "params", "路由/共享专家与 Router。"),
-            ("Other 逻辑参数量", "Other", "params", "Embedding、LM Head、HC 与 Norm。"),
-            ("总逻辑参数量", "Total", "params", "不包含 MTP。"),
-            ("Attention 参数容量", "Attention", "bytes", "按推理 dtype 与量化 Scale 计算。"),
-            ("MoE 参数容量", "MoE", "bytes", "路由专家 FP4、共享专家 FP8、Router 复制。"),
-            ("Other 参数容量", "Other", "bytes", "Embedding、LM Head、HC 与 Norm。"),
-            ("总参数容量", "Total", "bytes", "每 Rank 静态参数驻留。"),
+            ("Attention logical parameter count", "Attention", "params", "注意力投影、Compressor、Indexer。"),
+            ("MoE logical parameter count", "MoE", "params", "路由/共享专家与 Router。"),
+            ("Other logical parameter count", "Other", "params", "Embedding、LM Head、HC 与 Norm。"),
+            ("Total logical parameter count", "Total", "params", "不包含 MTP。"),
+            ("Attention parameter capacity", "Attention", "bytes", "按推理 dtype 与量化 Scale 计算。"),
+            ("MoE parameter capacity", "MoE", "bytes", "路由专家 FP4、共享专家 FP8、Router 复制。"),
+            ("Other parameter capacity", "Other", "bytes", "Embedding、LM Head、HC 与 Norm。"),
+            ("Total parameter capacity", "Total", "bytes", "每 Rank 静态参数驻留。"),
         ):
             memory_label = f"{category} Parameter {'Count' if kind == 'params' else 'Capacity'}"
             values = (
@@ -3128,10 +3035,10 @@ class InferenceComparisonWriter(CalculatorWriter):
             )
 
         for label, prefill_label, decode_label in (
-            ("有效主 KV Cache", "Prefill effective main KV", "Decode effective main KV"),
-            ("有效 Indexer KV Cache", "Prefill effective Indexer KV", "Decode effective Indexer KV"),
+            ("Effective main KV cache", "Prefill effective main KV", "Decode effective main KV"),
+            ("Effective Indexer KV cache", "Prefill effective Indexer KV", "Decode effective Indexer KV"),
             ("Compressor State", "Prefill compressor states", "Decode compressor states"),
-            ("预分配 KV + State", "Prefill preallocated KV + states", "Decode preallocated KV + states"),
+            ("Preallocated KV + state", "Prefill preallocated KV + states", "Decode preallocated KV + states"),
         ):
             values = (
                 cache_number(prefill_label, "prefill"),
@@ -3157,7 +3064,7 @@ class InferenceComparisonWriter(CalculatorWriter):
             memory["tp8_parameter_total"] + memory["decode_allocated_cache"],
         )
         add_row(
-            "总驻留容量",
+            "Total resident capacity",
             [
                 (
                     f"{memory_ref('TP1', 'Total Parameter Capacity')}+{memory_ref('TP1', 'Prefill preallocated KV + states')}",
@@ -3190,7 +3097,7 @@ class InferenceComparisonWriter(CalculatorWriter):
             dc8["total_per_rank_flops"],
         )
         add_row(
-            "一次推理所需芯片计算量",
+            "One-inference compute demand",
             [
                 (scenario_ref("PF", "TP1", "Total inference FLOPs"), total_flops_values[0], "flops"),
                 (scenario_ref("PF", "TP8", "Total inference FLOPs"), total_flops_values[1], "flops"),
@@ -3202,12 +3109,12 @@ class InferenceComparisonWriter(CalculatorWriter):
         )
 
         headers = [
-            "资源项目",
-            "预填充 TP1",
-            "预填充 TP8/每 Rank",
-            "解码 TP1",
-            "解码 TP8/每 Rank",
-            "说明",
+            "Resource",
+            "Prefill TP1",
+            "Prefill TP8/rank",
+            "Decode TP1",
+            "Decode TP8/rank",
+            "Notes",
         ]
         table_header = 3
         table_first_row = table_header + 1
@@ -3259,7 +3166,7 @@ class InferenceComparisonWriter(CalculatorWriter):
         ) -> None:
             nonlocal helper_next_row
             block_header = helper_next_row
-            ws.write(block_header, helper_start_col, "类别", self.formats["header"])
+            ws.write(block_header, helper_start_col, "Category", self.formats["header"])
             for series_index, (series_name, _) in enumerate(series_sources, start=1):
                 ws.write(
                     block_header,
@@ -3286,6 +3193,7 @@ class InferenceComparisonWriter(CalculatorWriter):
                 chart.add_series(
                     {
                         "name": series_name,
+                        "gap": CHART_CATEGORY_GAP,
                         "categories": [
                             "Comparison",
                             block_header + 1,
@@ -3332,38 +3240,38 @@ class InferenceComparisonWriter(CalculatorWriter):
 
         anchor_row = table_last_row + 4
         add_chart(
-            "一次推理所需总计算量/单 Rank",
+            "Total compute per inference / rank",
             f"A{anchor_row}",
-            ["预填充 TP1", "预填充 TP8", "解码 TP1", "解码 TP8"],
+            ["Prefill TP1", "Prefill TP8", "Decode TP1", "Decode TP8"],
             [
                 (
-                    "单次推理 GFLOPs",
+                    "One-inference TFLOPs",
                     [
-                        source_for("一次推理所需芯片计算量", raw_col, 1e9)
+                        source_for("One-inference compute demand", raw_col, 1e12)
                         for raw_col in raw_cols
                     ],
                 )
             ],
-            "GFLOPs",
-            '0.0" GFLOPs"',
+            "TFLOPs",
+            '0.0" TFLOPs"',
         )
         add_chart(
-            "预填充每 Rank 计算量",
+            "Prefill compute per rank",
             f"A{anchor_row + 17}",
-            ["注意力", "混合专家", "其他"],
+            ["Attention", "MoE", "Other"],
             [
                 (
                     "TP1 TFLOPs",
                     [
                         source_for(label, raw_cols[0], 1e12)
-                        for label in ("Attention 计算量", "MoE 计算量", "Other 推理计算量")
+                        for label in ("Attention FLOPs", "MoE FLOPs", "Other inference FLOPs")
                     ],
                 ),
                 (
                     "TP8 TFLOPs",
                     [
                         source_for(label, raw_cols[1], 1e12)
-                        for label in ("Attention 计算量", "MoE 计算量", "Other 推理计算量")
+                        for label in ("Attention FLOPs", "MoE FLOPs", "Other inference FLOPs")
                     ],
                 ),
             ],
@@ -3371,22 +3279,22 @@ class InferenceComparisonWriter(CalculatorWriter):
             '0.0" TFLOPs"',
         )
         add_chart(
-            "解码每 Rank 计算量",
+            "Decode compute per rank",
             f"J{anchor_row + 17}",
-            ["注意力", "混合专家", "其他"],
+            ["Attention", "MoE", "Other"],
             [
                 (
                     "TP1 GFLOPs",
                     [
                         source_for(label, raw_cols[2], 1e9)
-                        for label in ("Attention 计算量", "MoE 计算量", "Other 推理计算量")
+                        for label in ("Attention FLOPs", "MoE FLOPs", "Other inference FLOPs")
                     ],
                 ),
                 (
                     "TP8 GFLOPs",
                     [
                         source_for(label, raw_cols[3], 1e9)
-                        for label in ("Attention 计算量", "MoE 计算量", "Other 推理计算量")
+                        for label in ("Attention FLOPs", "MoE FLOPs", "Other inference FLOPs")
                     ],
                 ),
             ],
@@ -3394,22 +3302,22 @@ class InferenceComparisonWriter(CalculatorWriter):
             '0.0" GFLOPs"',
         )
         add_chart(
-            "预填充每 Rank HBM 流量",
+            "Prefill HBM traffic per rank",
             f"A{anchor_row + 34}",
-            ["注意力", "混合专家", "其他"],
+            ["Attention", "MoE", "Other"],
             [
                 (
                     "TP1 GB",
                     [
                         source_for(label, raw_cols[0], 1e9)
-                        for label in ("Attention HBM 流量", "MoE HBM 流量", "Other HBM 流量")
+                        for label in ("Attention HBM traffic", "MoE HBM traffic", "Other HBM traffic")
                     ],
                 ),
                 (
                     "TP8 GB",
                     [
                         source_for(label, raw_cols[1], 1e9)
-                        for label in ("Attention HBM 流量", "MoE HBM 流量", "Other HBM 流量")
+                        for label in ("Attention HBM traffic", "MoE HBM traffic", "Other HBM traffic")
                     ],
                 ),
             ],
@@ -3417,22 +3325,22 @@ class InferenceComparisonWriter(CalculatorWriter):
             '0.0" GB"',
         )
         add_chart(
-            "解码每 Rank HBM 流量",
+            "Decode HBM traffic per rank",
             f"J{anchor_row + 34}",
-            ["注意力", "混合专家", "其他"],
+            ["Attention", "MoE", "Other"],
             [
                 (
                     "TP1 GB",
                     [
                         source_for(label, raw_cols[2], 1e9)
-                        for label in ("Attention HBM 流量", "MoE HBM 流量", "Other HBM 流量")
+                        for label in ("Attention HBM traffic", "MoE HBM traffic", "Other HBM traffic")
                     ],
                 ),
                 (
                     "TP8 GB",
                     [
                         source_for(label, raw_cols[3], 1e9)
-                        for label in ("Attention HBM 流量", "MoE HBM 流量", "Other HBM 流量")
+                        for label in ("Attention HBM traffic", "MoE HBM traffic", "Other HBM traffic")
                     ],
                 ),
             ],
@@ -3440,22 +3348,22 @@ class InferenceComparisonWriter(CalculatorWriter):
             '0.0" GB"',
         )
         add_chart(
-            "静态参数容量/单 Rank",
+            "Static parameter capacity per rank",
             f"A{anchor_row + 51}",
-            ["注意力", "混合专家", "其他"],
+            ["Attention", "MoE", "Other"],
             [
                 (
                     "TP1 GB",
                     [
                         source_for(label, raw_cols[0], 1e9)
-                        for label in ("Attention 参数容量", "MoE 参数容量", "Other 参数容量")
+                        for label in ("Attention parameter capacity", "MoE parameter capacity", "Other parameter capacity")
                     ],
                 ),
                 (
                     "TP8 GB",
                     [
                         source_for(label, raw_cols[1], 1e9)
-                        for label in ("Attention 参数容量", "MoE 参数容量", "Other 参数容量")
+                        for label in ("Attention parameter capacity", "MoE parameter capacity", "Other parameter capacity")
                     ],
                 ),
             ],
@@ -3463,22 +3371,22 @@ class InferenceComparisonWriter(CalculatorWriter):
             '0.0" GB"',
         )
         add_chart(
-            "TP1 vs TP8：单 Rank 推理驻留容量",
+            "TP1 vs TP8: inference resident capacity per rank",
             f"J{anchor_row + 51}",
-            ["预填充", "解码"],
+            ["Prefill", "Decode"],
             [
                 (
                     "TP1 GB",
                     [
-                        source_for("总驻留容量", raw_cols[0], 1e9),
-                        source_for("总驻留容量", raw_cols[2], 1e9),
+                        source_for("Total resident capacity", raw_cols[0], 1e9),
+                        source_for("Total resident capacity", raw_cols[2], 1e9),
                     ],
                 ),
                 (
                     "TP8 GB",
                     [
-                        source_for("总驻留容量", raw_cols[1], 1e9),
-                        source_for("总驻留容量", raw_cols[3], 1e9),
+                        source_for("Total resident capacity", raw_cols[1], 1e9),
+                        source_for("Total resident capacity", raw_cols[3], 1e9),
                     ],
                 ),
             ],
@@ -3497,7 +3405,7 @@ class InferenceComparisonWriter(CalculatorWriter):
         ws.activate()
         ws.hide_gridlines(2)
         ws.freeze_panes(3, 0)
-        ws.write(0, 0, "单 Rank 推理硬件资源汇总", self.formats["title"])
+        ws.write(0, 0, "Per-Rank Inference Hardware Resource Summary", self.formats["title"])
         ws.write(
             1,
             0,
@@ -3579,24 +3487,24 @@ class InferenceComparisonWriter(CalculatorWriter):
                 0,
                 start_row,
                 3,
-                f"{tp}（配置值={size}）单 Rank 资源",
+                f"{tp} (configured size={size}) per-rank resources",
                 self.formats["section"],
             )
             header_row = start_row + 1
             ws.write_row(
                 header_row,
                 0,
-                ["资源项目", "预填充/每 Rank", "解码/每 Rank", "说明"],
+                ["Resource", "Prefill/rank", "Decode/rank", "Notes"],
                 self.formats["header"],
             )
             specs: list[
                 tuple[str, tuple[str, float], tuple[str, float], str, str]
             ] = []
             for label, source_label, category in (
-                ("Attention 计算量", "Attention major FLOPs", "Attention"),
-                ("MoE 计算量", "MoE major FLOPs", "MoE"),
-                ("Other 推理计算量", "Other inference FLOPs", "Other"),
-                ("总推理计算量", "Total inference FLOPs", "Total"),
+                ("Attention FLOPs", "Attention major FLOPs", "Attention"),
+                ("MoE FLOPs", "MoE major FLOPs", "MoE"),
+                ("Other inference FLOPs", "Other inference FLOPs", "Other"),
+                ("Total inference FLOPs", "Total inference FLOPs", "Total"),
             ):
                 if category == "Attention":
                     values = (
@@ -3629,10 +3537,10 @@ class InferenceComparisonWriter(CalculatorWriter):
                 )
 
             for label, source_label, category in (
-                ("Attention HBM 流量", "Attention HBM traffic", "Attention"),
-                ("MoE HBM 流量", "MoE HBM traffic", "MoE"),
-                ("Other HBM 流量", "Other HBM traffic", "Other"),
-                ("总 HBM 流量", "Total HBM traffic", "Total"),
+                ("Attention HBM traffic", "Attention HBM traffic", "Attention"),
+                ("MoE HBM traffic", "MoE HBM traffic", "MoE"),
+                ("Other HBM traffic", "Other HBM traffic", "Other"),
+                ("Total HBM traffic", "Total HBM traffic", "Total"),
             ):
                 if category == "Total":
                     values = (
@@ -3657,9 +3565,9 @@ class InferenceComparisonWriter(CalculatorWriter):
                 )
 
             for label, source_label, category in (
-                ("Attention 所需 HBM 带宽", "Attention HBM traffic", "Attention"),
-                ("MoE 所需 HBM 带宽", "MoE HBM traffic", "MoE"),
-                ("Other 所需 HBM 带宽", "Other HBM traffic", "Other"),
+                ("Attention required HBM bandwidth", "Attention HBM traffic", "Attention"),
+                ("MoE required HBM bandwidth", "MoE HBM traffic", "MoE"),
+                ("Other required HBM bandwidth", "Other HBM traffic", "Other"),
             ):
                 pf_value = (
                     category_hbm(prefill_summary, category)
@@ -3689,7 +3597,7 @@ class InferenceComparisonWriter(CalculatorWriter):
 
             specs.append(
                 (
-                    "一次推理所需芯片计算量",
+                    "One-inference compute demand",
                     (
                         scenario_ref("PF", tp, "Total inference FLOPs"),
                         prefill_summary["total_per_rank_flops"],
@@ -3708,7 +3616,7 @@ class InferenceComparisonWriter(CalculatorWriter):
             )
             specs.append(
                 (
-                    "卡间互连传输量",
+                    "Interconnect transfer",
                     (
                         scenario_ref("PF", tp, "Interconnect transfer"),
                         interconnect[0],
@@ -3723,7 +3631,7 @@ class InferenceComparisonWriter(CalculatorWriter):
             )
             specs.append(
                 (
-                    "目标时延所需互连带宽",
+                    "Required interconnect bandwidth",
                     (
                         f"{scenario_ref('PF', tp, 'Interconnect transfer')}/(PrefillTargetMs/1000)/1E9",
                         interconnect[0]
@@ -3742,14 +3650,14 @@ class InferenceComparisonWriter(CalculatorWriter):
             )
 
             for label, category, kind, note in (
-                ("Attention 逻辑参数量", "Attention", "params", "投影、Compressor、Indexer。"),
-                ("MoE 逻辑参数量", "MoE", "params", "路由/共享专家与 Router。"),
-                ("Other 逻辑参数量", "Other", "params", "Embedding、LM Head、HC、Norm。"),
-                ("总逻辑参数量", "Total", "params", "不含 MTP。"),
-                ("Attention 参数容量", "Attention", "bytes", "按推理 dtype 与 Scale 计算。"),
-                ("MoE 参数容量", "MoE", "bytes", "路由专家 FP4，共享专家 FP8。"),
-                ("Other 参数容量", "Other", "bytes", "Embedding、LM Head、HC、Norm。"),
-                ("总参数容量", "Total", "bytes", "单 Rank 静态参数驻留。"),
+                ("Attention logical parameter count", "Attention", "params", "投影、Compressor、Indexer。"),
+                ("MoE logical parameter count", "MoE", "params", "路由/共享专家与 Router。"),
+                ("Other logical parameter count", "Other", "params", "Embedding、LM Head、HC、Norm。"),
+                ("Total logical parameter count", "Total", "params", "不含 MTP。"),
+                ("Attention parameter capacity", "Attention", "bytes", "按推理 dtype 与 Scale 计算。"),
+                ("MoE parameter capacity", "MoE", "bytes", "路由专家 FP4，共享专家 FP8。"),
+                ("Other parameter capacity", "Other", "bytes", "Embedding、LM Head、HC、Norm。"),
+                ("Total parameter capacity", "Total", "bytes", "单 Rank 静态参数驻留。"),
             ):
                 memory_label = f"{category} Parameter {'Count' if kind == 'params' else 'Capacity'}"
                 value = parameter_value(tp, category, kind)
@@ -3757,10 +3665,10 @@ class InferenceComparisonWriter(CalculatorWriter):
                 specs.append((label, (ref, value), (ref, value), kind, note))
 
             for label, pf_label, dc_label in (
-                ("有效主 KV Cache", "Prefill effective main KV", "Decode effective main KV"),
-                ("有效 Indexer KV Cache", "Prefill effective Indexer KV", "Decode effective Indexer KV"),
+                ("Effective main KV cache", "Prefill effective main KV", "Decode effective main KV"),
+                ("Effective Indexer KV cache", "Prefill effective Indexer KV", "Decode effective Indexer KV"),
                 ("Compressor State", "Prefill compressor states", "Decode compressor states"),
-                ("预分配 KV + State", "Prefill preallocated KV + states", "Decode preallocated KV + states"),
+                ("Preallocated KV + state", "Prefill preallocated KV + states", "Decode preallocated KV + states"),
             ):
                 specs.append(
                     (
@@ -3777,7 +3685,7 @@ class InferenceComparisonWriter(CalculatorWriter):
             dc_allocated = cache_number("Decode preallocated KV + states", "decode")
             specs.append(
                 (
-                    "总驻留容量",
+                    "Total resident capacity",
                     (
                         f"{memory_ref(tp, 'Total Parameter Capacity')}+{memory_ref(tp, 'Prefill preallocated KV + states')}",
                         total_parameter + pf_allocated,
@@ -3793,7 +3701,7 @@ class InferenceComparisonWriter(CalculatorWriter):
 
             for offset, (label, pf_spec, dc_spec, kind, note) in enumerate(specs):
                 row = header_row + 1 + offset
-                total = label.startswith("总")
+                total = label.startswith("Total")
                 ws.write(
                     row,
                     0,
@@ -4081,8 +3989,12 @@ def validate_baseline(
                 ".//c:numFmt", chart_namespace
             )
         ]
-        if not any("GFLOPs" in format_code for format_code in first_chart_formats):
-            raise AssertionError("Total FLOPs chart must use a readable GFLOPs format")
+        if not any("TFLOPs" in format_code for format_code in first_chart_formats):
+            raise AssertionError("Total FLOPs chart must use a readable TFLOPs format")
+        if any(
+            b'<c:gapWidth val="30"/>' not in payload for payload in chart_payloads
+        ):
+            raise AssertionError("Charts must use a 1/5 category gap")
         workbook_root = ET.fromstring(workbook_xml)
         namespace = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
         sheet_names = [
@@ -4129,12 +4041,12 @@ def validate_baseline(
             for column in comparison_tables[0].findall("{*}tableColumns/{*}tableColumn")
         ]
         if comparison_headers != [
-            "资源项目",
-            "预填充 TP1",
-            "预填充 TP8/每 Rank",
-            "解码 TP1",
-            "解码 TP8/每 Rank",
-            "说明",
+            "Resource",
+            "Prefill TP1",
+            "Prefill TP8/rank",
+            "Decode TP1",
+            "Decode TP8/rank",
+            "Notes",
         ]:
             raise AssertionError("Comparison resource table has unexpected columns")
         if any(header in {"Unit", "单位"} for header in comparison_headers):
