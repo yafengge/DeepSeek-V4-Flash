@@ -27,6 +27,7 @@ DEFAULT_CONFIG = ROOT / "inference" / "config.json"
 DEFAULT_OUTPUT = Path(__file__).resolve().parent / "deepseek_v4_flash_calculator.xlsx"
 MAX_LAYER_ROWS = 64
 CHART_CATEGORY_GAP = 30
+CHART_PAIR_X_OFFSET = 25
 
 
 def display_label(value: str) -> str:
@@ -1857,7 +1858,7 @@ class InferenceComparisonWriter(CalculatorWriter):
             0,
             detail_header_row - 1,
             len(headers) - 1,
-            "Inference calculation detail",
+            "推理计算明细",
             self.formats["section"],
         )
         ws.write_row(detail_header_row, 0, headers, self.formats["header"])
@@ -2136,7 +2137,7 @@ class InferenceComparisonWriter(CalculatorWriter):
                 0,
                 start_row,
                 7,
-                f"Parameters and cache: {('8K Prefill' if mode == 'prefill' else '1M-context Decode')} parameters and capacity",
+                f"参数与缓存：{('8K 预填充' if mode == 'prefill' else '1M 解码')} 参数与容量",
                 self.formats["section"],
             )
             detail_header = start_row + 1
@@ -2241,7 +2242,7 @@ class InferenceComparisonWriter(CalculatorWriter):
                 0,
                 summary_start,
                 4,
-                "Parameter count and capacity summary",
+                "参数量与参数容量汇总",
                 self.formats["section"],
             )
             summary_header = summary_start + 1
@@ -2384,7 +2385,7 @@ class InferenceComparisonWriter(CalculatorWriter):
                 0,
                 cache_start,
                 3,
-                "Current scenario KV cache and Compressor state (per Rank, replicated across TP)",
+                "当前场景 KV 缓存与 Compressor 状态（每 Rank，TP 间复制）",
                 self.formats["section"],
             )
             cache_header = cache_start + 1
@@ -2456,7 +2457,7 @@ class InferenceComparisonWriter(CalculatorWriter):
                 0,
                 rank_start,
                 9,
-                "Per-rank device resident capacity (default even sharding)",
+                "单 Rank 设备驻留容量（默认均匀分片）",
                 self.formats["section"],
             )
             rank_header = rank_start + 1
@@ -3163,6 +3164,7 @@ class InferenceComparisonWriter(CalculatorWriter):
             series_sources: list[tuple[str, list[tuple[int, int, float, float]]]],
             y_name: str,
             number_format: str,
+            x_offset: int = 0,
         ) -> None:
             nonlocal helper_next_row
             block_header = helper_next_row
@@ -3226,7 +3228,15 @@ class InferenceComparisonWriter(CalculatorWriter):
             chart.set_x_axis({"label_position": "low"})
             chart.set_legend({"position": "bottom"})
             chart.set_style(10)
-            ws.insert_chart(anchor, chart, {"x_scale": 1.28, "y_scale": 1.15})
+            ws.insert_chart(
+                anchor,
+                chart,
+                {
+                    "x_scale": 1.28,
+                    "y_scale": 1.15,
+                    "x_offset": x_offset,
+                },
+            )
             helper_next_row = block_header + max(len(category_labels), 4) + 3
 
         def source_for(
@@ -3280,7 +3290,7 @@ class InferenceComparisonWriter(CalculatorWriter):
         )
         add_chart(
             "Decode compute per rank",
-            f"J{anchor_row + 17}",
+            f"E{anchor_row + 17}",
             ["Attention", "MoE", "Other"],
             [
                 (
@@ -3300,6 +3310,7 @@ class InferenceComparisonWriter(CalculatorWriter):
             ],
             "GFLOPs",
             '0.0" GFLOPs"',
+            CHART_PAIR_X_OFFSET,
         )
         add_chart(
             "Prefill HBM traffic per rank",
@@ -3326,7 +3337,7 @@ class InferenceComparisonWriter(CalculatorWriter):
         )
         add_chart(
             "Decode HBM traffic per rank",
-            f"J{anchor_row + 34}",
+            f"E{anchor_row + 34}",
             ["Attention", "MoE", "Other"],
             [
                 (
@@ -3346,6 +3357,7 @@ class InferenceComparisonWriter(CalculatorWriter):
             ],
             "GB",
             '0.0" GB"',
+            CHART_PAIR_X_OFFSET,
         )
         add_chart(
             "Static parameter capacity per rank",
@@ -3372,7 +3384,7 @@ class InferenceComparisonWriter(CalculatorWriter):
         )
         add_chart(
             "TP1 vs TP8: inference resident capacity per rank",
-            f"J{anchor_row + 51}",
+            f"E{anchor_row + 51}",
             ["Prefill", "Decode"],
             [
                 (
@@ -3392,6 +3404,7 @@ class InferenceComparisonWriter(CalculatorWriter):
             ],
             "GB",
             '0.0" GB"',
+            CHART_PAIR_X_OFFSET,
         )
         ws.set_column("A:A", 30)
         ws.set_column("B:E", 20)
