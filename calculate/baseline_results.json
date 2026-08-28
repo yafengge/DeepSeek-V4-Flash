@@ -62,13 +62,6 @@
           "per_rank_flops": 102836037746688.0,
           "hbm_read_bytes_per_rank": 273606909056.0,
           "hbm_write_bytes_per_rank": 84430905344.0,
-          "interconnect_bytes_per_rank": 0
-        },
-        "Communication": {
-          "global_flops": 0,
-          "per_rank_flops": 0,
-          "hbm_read_bytes_per_rank": 0,
-          "hbm_write_bytes_per_rank": 0,
           "interconnect_bytes_per_rank": 0.0
         },
         "MoE": {
@@ -76,20 +69,20 @@
           "per_rank_flops": 124846109360128.0,
           "hbm_read_bytes_per_rank": 171428192768.0,
           "hbm_write_bytes_per_rank": 20560478208.0,
-          "interconnect_bytes_per_rank": 0
+          "interconnect_bytes_per_rank": 0.0
         },
         "Other": {
-          "global_flops": 702280286208,
-          "per_rank_flops": 702280286208.0,
-          "hbm_read_bytes_per_rank": 48424313928.0,
-          "hbm_write_bytes_per_rank": 46171415552.0,
-          "interconnect_bytes_per_rank": 0
+          "global_flops": 715535007744,
+          "per_rank_flops": 715535007744.0,
+          "hbm_read_bytes_per_rank": 54600292188.0,
+          "hbm_write_bytes_per_rank": 52144104448.0,
+          "interconnect_bytes_per_rank": 0.0
         }
       },
-      "total_global_flops": 228384427393024,
-      "total_per_rank_flops": 228384427393024.0,
-      "total_hbm_read_bytes_per_rank": 493459415752.0,
-      "total_hbm_write_bytes_per_rank": 151162799104.0,
+      "total_global_flops": 228397682114560,
+      "total_per_rank_flops": 228397682114560.0,
+      "total_hbm_read_bytes_per_rank": 499635394012.0,
+      "total_hbm_write_bytes_per_rank": 157135488000.0,
       "total_interconnect_bytes_per_rank": 0.0,
       "attention_major_flops_per_rank": 102836037746688.0,
       "moe_major_flops_per_rank": 124846109360128.0
@@ -101,34 +94,27 @@
           "per_rank_flops": 23172382457856.0,
           "hbm_read_bytes_per_rank": 208989724096.0,
           "hbm_write_bytes_per_rank": 22542082048.0,
-          "interconnect_bytes_per_rank": 0
-        },
-        "Communication": {
-          "global_flops": 0,
-          "per_rank_flops": 0,
-          "hbm_read_bytes_per_rank": 0,
-          "hbm_write_bytes_per_rank": 0,
-          "interconnect_bytes_per_rank": 40635322112.0
+          "interconnect_bytes_per_rank": 20199768064.0
         },
         "MoE": {
           "global_flops": 124846109360128,
           "per_rank_flops": 31765578121216.0,
           "hbm_read_bytes_per_rank": 27504845312.0,
           "hbm_write_bytes_per_rank": 5410652160.0,
-          "interconnect_bytes_per_rank": 0
+          "interconnect_bytes_per_rank": 20199768064.0
         },
         "Other": {
-          "global_flops": 702280286208,
-          "per_rank_flops": 701353607168.0,
-          "hbm_read_bytes_per_rank": 46570955848.0,
-          "hbm_write_bytes_per_rank": 46170963072.0,
-          "interconnect_bytes_per_rank": 0
+          "global_flops": 715535007744,
+          "per_rank_flops": 714608328704.0,
+          "hbm_read_bytes_per_rank": 52746924476.0,
+          "hbm_write_bytes_per_rank": 52143651968.0,
+          "interconnect_bytes_per_rank": 235785984.0
         }
       },
-      "total_global_flops": 228384427393024,
-      "total_per_rank_flops": 55639314186240.0,
-      "total_hbm_read_bytes_per_rank": 283065525256.0,
-      "total_hbm_write_bytes_per_rank": 74123697280.0,
+      "total_global_flops": 228397682114560,
+      "total_per_rank_flops": 55652568907776.0,
+      "total_hbm_read_bytes_per_rank": 289241493884.0,
+      "total_hbm_write_bytes_per_rank": 80096386176.0,
       "total_interconnect_bytes_per_rank": 40635322112.0,
       "attention_major_flops_per_rank": 23172382457856.0,
       "moe_major_flops_per_rank": 31765578121216.0
@@ -142,13 +128,6 @@
           "per_rank_flops": 123969470464.0,
           "hbm_read_bytes_per_rank": 9758096512.0,
           "hbm_write_bytes_per_rank": 734131840.0,
-          "interconnect_bytes_per_rank": 0
-        },
-        "Communication": {
-          "global_flops": 0,
-          "per_rank_flops": 0,
-          "hbm_read_bytes_per_rank": 0,
-          "hbm_write_bytes_per_rank": 0,
           "interconnect_bytes_per_rank": 0.0
         },
         "MoE": {
@@ -156,20 +135,20 @@
           "per_rank_flops": 15240003584.0,
           "hbm_read_bytes_per_rank": 4624523848.0,
           "hbm_write_bytes_per_rank": 2509824.0,
-          "interconnect_bytes_per_rank": 0
+          "interconnect_bytes_per_rank": 0.0
         },
         "Other": {
-          "global_flops": 1144660054,
-          "per_rank_flops": 1144660054.0,
-          "hbm_read_bytes_per_rank": 2259051592.0,
-          "hbm_write_bytes_per_rank": 6153216.0,
-          "interconnect_bytes_per_rank": 0
+          "global_flops": 1146278062,
+          "per_rank_flops": 1146278062.0,
+          "hbm_read_bytes_per_rank": 2261768028.0,
+          "hbm_write_bytes_per_rank": 6882304.0,
+          "interconnect_bytes_per_rank": 0.0
         }
       },
-      "total_global_flops": 140354134102,
-      "total_per_rank_flops": 140354134102.0,
-      "total_hbm_read_bytes_per_rank": 16641671952.0,
-      "total_hbm_write_bytes_per_rank": 742794880.0,
+      "total_global_flops": 140355752110,
+      "total_per_rank_flops": 140355752110.0,
+      "total_hbm_read_bytes_per_rank": 16644388388.0,
+      "total_hbm_write_bytes_per_rank": 743523968.0,
       "total_interconnect_bytes_per_rank": 0.0,
       "attention_major_flops_per_rank": 123969470464.0,
       "moe_major_flops_per_rank": 15240003584.0
@@ -181,34 +160,27 @@
           "per_rank_flops": 19452461056.0,
           "hbm_read_bytes_per_rank": 3922810304.0,
           "hbm_write_bytes_per_rank": 112422224.0,
-          "interconnect_bytes_per_rank": 0
-        },
-        "Communication": {
-          "global_flops": 0,
-          "per_rank_flops": 0,
-          "hbm_read_bytes_per_rank": 0,
-          "hbm_write_bytes_per_rank": 0,
-          "interconnect_bytes_per_rank": 5865216.0
+          "interconnect_bytes_per_rank": 2465792.0
         },
         "MoE": {
           "global_flops": 15240003584,
           "per_rank_flops": 3877634048.0,
           "hbm_read_bytes_per_rank": 1604545096.0,
           "hbm_write_bytes_per_rank": 660480.0,
-          "interconnect_bytes_per_rank": 0
+          "interconnect_bytes_per_rank": 2465792.0
         },
         "Other": {
-          "global_flops": 1144660054,
-          "per_rank_flops": 217981014.0,
-          "hbm_read_bytes_per_rank": 405693512.0,
-          "hbm_write_bytes_per_rank": 5700736.0,
-          "interconnect_bytes_per_rank": 0
+          "global_flops": 1146278062,
+          "per_rank_flops": 219599022.0,
+          "hbm_read_bytes_per_rank": 408400316.0,
+          "hbm_write_bytes_per_rank": 6429824.0,
+          "interconnect_bytes_per_rank": 933632.0
         }
       },
-      "total_global_flops": 140354134102,
-      "total_per_rank_flops": 23548076118.0,
-      "total_hbm_read_bytes_per_rank": 5933048912.0,
-      "total_hbm_write_bytes_per_rank": 118783440.0,
+      "total_global_flops": 140355752110,
+      "total_per_rank_flops": 23549694126.0,
+      "total_hbm_read_bytes_per_rank": 5935755716.0,
+      "total_hbm_write_bytes_per_rank": 119512528.0,
       "total_interconnect_bytes_per_rank": 5865216.0,
       "attention_major_flops_per_rank": 19452461056.0,
       "moe_major_flops_per_rank": 3877634048.0

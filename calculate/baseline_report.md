@@ -14,10 +14,10 @@
 |---|---:|---:|---:|---:|
 | Attention FLOPs | 102.836 TFLOPs | 23.172 TFLOPs | 0.124 TFLOPs | 0.019 TFLOPs |
 | MoE FLOPs | 124.846 TFLOPs | 31.766 TFLOPs | 0.015 TFLOPs | 0.004 TFLOPs |
-| 总 FLOPs | 228.384 TFLOPs | 55.639 TFLOPs | 0.140 TFLOPs | 0.024 TFLOPs |
+| 总 FLOPs | 228.398 TFLOPs | 55.653 TFLOPs | 0.140 TFLOPs | 0.024 TFLOPs |
 | Attention HBM | 358.038 GB | 231.532 GB | 10.492 GB | 4.035 GB |
 | MoE HBM | 191.989 GB | 32.915 GB | 4.627 GB | 1.605 GB |
-| Other HBM | 94.596 GB | 92.742 GB | 2.265 GB | 0.411 GB |
+| Other HBM | 106.744 GB | 104.891 GB | 2.269 GB | 0.415 GB |
 
 ## 每 Rank 容量
 
