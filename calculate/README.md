@@ -16,14 +16,14 @@ $HOME/.local/bin/micromamba run -n deepseek-onnx \
 工作表：
 
 - `Parameters`：可调整 TP1/TP8、Prefill/Decode Batch、Hidden Size、
-  Head、专家数、Cache、dtype 和硬件参数。
-- `Layer_Config`：逐层调整 `window`、`short`、`long` 模式。
-- `Prefill_8K`：TP1/TP8 每 Rank Prefill 计算与 HBM 明细。
-- `Decode_1M`：TP1/TP8 每 Rank Decode 计算与 HBM 明细。
-- `Memory`：逻辑参数量、量化后参数容量、KV/State 与逐 Rank 容量。
-- `dtype`：配置级、模块级和逐层的权重/激活数据类型说明。
+  Head、专家数、Cache、dtype 和硬件参数；架构约束由生成器代码校验，
+  不在工作簿中单独展示。
+- `Prefill_8K`：TP1/TP8 每 Rank Prefill 计算与 HBM 明细，以及顶部辅助指标的单位、作用说明、参数容量、Prefill KV/State 和驻留容量。
+- `Decode_1M`：TP1/TP8 每 Rank Decode 计算与 HBM 明细，以及顶部辅助指标的单位、作用说明、参数容量、Decode KV/State 和驻留容量。
+- `dtype`：各种算子和张量的参数存储、激活/中间计算类型，以及 43 层逐层 dtype 与 Attention / Router 模式总表。
 - `Summary`：面向每 Rank 硬件配置的单次推理 FLOPs、带宽和容量总览；单次推理 FLOPs 不按目标时延换算。
-- `Comparison`：无科学计数法的 TP1/TP8 对比图；一次推理的总 FLOPs 与单位显示在同一数量单元格中。
+- `Comparison`：一张统一的 TP1/TP8 资源对比表和七张图；一次推理的总 FLOPs 与单位显示在同一数量单元格中。
+- `Layer_Config`：逐层调整 `window`、`short`、`long` 模式。
 - `Methodology`：中文统计口径与限制。
 
 蓝色单元格是输入项，绿色及结果单元格由 Excel 公式计算。打开工作簿时会完整

@@ -28,6 +28,104 @@ DEFAULT_OUTPUT = Path(__file__).resolve().parent / "deepseek_v4_flash_calculator
 MAX_LAYER_ROWS = 64
 
 
+DISPLAY_LABELS = {
+    "Attention": "注意力",
+    "MoE": "混合专家",
+    "Other": "其他",
+    "Communication": "通信",
+    "Total": "总计",
+    "Attention 计算量": "注意力计算量",
+    "MoE 计算量": "混合专家计算量",
+    "Other 推理计算量": "其他推理计算量",
+    "Attention HBM 流量": "注意力 HBM 流量",
+    "MoE HBM 流量": "混合专家 HBM 流量",
+    "Other HBM 流量": "其他 HBM 流量",
+    "Attention 所需 HBM 带宽": "注意力所需 HBM 带宽",
+    "MoE 所需 HBM 带宽": "混合专家所需 HBM 带宽",
+    "Other 所需 HBM 带宽": "其他所需 HBM 带宽",
+    "Attention 逻辑参数量": "注意力逻辑参数量",
+    "MoE 逻辑参数量": "混合专家逻辑参数量",
+    "Other 逻辑参数量": "其他逻辑参数量",
+    "Attention 参数容量": "注意力参数容量",
+    "MoE 参数容量": "混合专家参数容量",
+    "Other 参数容量": "其他参数容量",
+    "有效主 KV Cache": "有效主 KV 缓存",
+    "有效 Indexer KV Cache": "有效 Indexer KV 缓存",
+    "Compressor State": "Compressor 状态",
+    "预分配 KV + State": "预分配 KV + 状态",
+    "Major": "主要",
+    "Auxiliary": "辅助",
+    "Token rows": "令牌行数",
+    "Causal raw-window pairs": "因果原始窗口对数",
+    "Capped short-compressed pairs": "封顶短压缩对数",
+    "Long-compressed pairs": "长压缩对数",
+    "Indexer scan pairs": "Indexer 扫描对数",
+    "Raw-window candidates": "原始窗口候选数",
+    "Short-compressed Top-K candidates": "短压缩 Top-K 候选数",
+    "Long-compressed candidates": "长压缩候选数",
+    "Indexer scan candidates": "Indexer 扫描候选数",
+    "window/short/long 层组合": "窗口/短压缩/长压缩层组合",
+    "Expert activation probability": "专家激活概率",
+    "Attention major FLOPs": "注意力主要 FLOPs",
+    "MoE major FLOPs": "混合专家主要 FLOPs",
+    "Other inference FLOPs": "其他推理 FLOPs",
+    "Total inference FLOPs": "总推理 FLOPs",
+    "Attention HBM traffic": "注意力 HBM 流量",
+    "MoE HBM traffic": "混合专家 HBM 流量",
+    "Other HBM traffic": "其他 HBM 流量",
+    "Total HBM traffic": "总 HBM 流量",
+    "Interconnect transfer": "卡间互连传输量",
+    "Arithmetic intensity": "算术强度",
+    "One-inference compute demand": "一次推理所需计算量",
+    "Required HBM at target": "目标时延所需 HBM 带宽",
+    "Prefill effective main KV": "预填充有效主 KV 缓存",
+    "Prefill effective Indexer KV": "预填充有效 Indexer KV 缓存",
+    "Prefill compressor states": "预填充 Compressor 状态",
+    "Prefill preallocated KV + states": "预填充预分配 KV + 状态",
+    "Decode effective main KV": "解码有效主 KV 缓存",
+    "Decode effective Indexer KV": "解码有效 Indexer KV 缓存",
+    "Decode compressor states": "解码 Compressor 状态",
+    "Decode preallocated KV + states": "解码预分配 KV + 状态",
+    "Total FLOPs/rank": "总 FLOPs/每 Rank",
+    "Total aggregate FLOPs": "总聚合 FLOPs",
+    "HBM read/rank": "HBM 读取量/每 Rank",
+    "HBM write/rank": "HBM 写入量/每 Rank",
+    "HBM total/rank": "HBM 总流量/每 Rank",
+    "Interconnect/rank": "卡间互连/每 Rank",
+    "Required compute at target": "目标时延所需算力",
+    "Compute lower bound": "算力下界",
+    "HBM lower bound": "HBM 下界",
+    "Interconnect lower bound": "卡间互连下界",
+    "token rows": "令牌行",
+    "pairs/sequence": "对数/序列",
+    "probability": "概率",
+    "FLOPs": "FLOPs",
+    "bytes": "字节",
+    "flops": "FLOPs",
+    "ranks": "Rank",
+    "sequences": "序列",
+    "tokens": "令牌",
+    "elements": "元素",
+    "heads": "头",
+    "groups": "组",
+    "experts": "专家",
+    "experts/token": "专家/令牌",
+    "tokens/entry": "令牌/条目",
+    "entries": "条目",
+    "streams": "流",
+    "iterations": "迭代",
+    "layers": "层",
+    "heads/rank": "头/Rank",
+    "experts/rank": "专家/Rank",
+    "groups/rank": "组/Rank",
+    "tokens/rank": "令牌/Rank",
+}
+
+
+def display_label(value: str) -> str:
+    return DISPLAY_LABELS.get(value, value)
+
+
 @dataclass(frozen=True)
 class Inputs:
     tp: int
@@ -443,8 +541,8 @@ def scenario_items(
     items.append(
         Item(
             "Attention",
-            "Q/K/O projections",
-            "All active layers",
+            "Q/K/O 投影",
+            "所有启用层",
             "2*rows*layers*(Wq_a+Wq_b+Wkv+Wo_a+Wo_b)",
             (
                 f"={rows_name}*TotalLayers*2*(HiddenSize*QLoraRank+"
@@ -472,7 +570,7 @@ def scenario_items(
             "=0",
             0,
             "Major",
-            "Wq_a and Wkv are replicated; Wq_b/Wo_a/Wo_b are TP-sharded.",
+            "Wq_a 和 Wkv 在每个 TP Rank 上复制；Wq_b/Wo_a/Wo_b 按 TP 分片。",
         )
     )
 
@@ -489,9 +587,9 @@ def scenario_items(
     items.append(
         Item(
             "Attention",
-            "Sparse attention QK + AV",
-            "Window/short/long layer mix",
-            "4*batch*heads*head_dim*sum(candidate pairs)",
+            "稀疏注意力 QK + AV",
+            "窗口/短压缩/长压缩层组合",
+            "4×batch×heads×head_dim×候选对数之和",
             f"=4*{batch_name}*NumHeads*HeadDim*{xl_pair_total}",
             sparse_global,
             f"=4*{batch_name}*KernelLocalHeads*HeadDim*{xl_pair_total}",
@@ -506,7 +604,7 @@ def scenario_items(
             "=0",
             0,
             "Major",
-            "KV is shared across heads; per-rank kernel heads include minimum-head padding.",
+            "KV 在各头之间共享；每个 Rank 的内核头数包含最小头数补齐。",
         )
     )
 
@@ -538,8 +636,8 @@ def scenario_items(
     items.append(
         Item(
             "Attention",
-            "Ratio-4 Indexer projections",
-            "Short-compression layers",
+            "ratio-4 Indexer 投影",
+            "短压缩层",
             "2*rows*short_layers*(q_rank*index_heads*index_dim+hidden*index_heads)",
             (
                 f"=2*{rows_name}*ShortLayers*(QLoraRank*IndexHeads*IndexHeadDim+"
@@ -564,7 +662,7 @@ def scenario_items(
             "=0",
             0,
             "Major",
-            "Indexer Q and token-weight projections; only ratio-4 layers use it.",
+            "Indexer Q 和令牌权重投影；仅 ratio-4 层使用。",
         )
     )
 
@@ -595,9 +693,9 @@ def scenario_items(
     items.append(
         Item(
             "Attention",
-            "Ratio-4 Indexer score scan",
-            "Short-compression layers",
-            "2*batch*short_layers*index_heads*index_dim*causal compressed pairs",
+            "ratio-4 Indexer 评分扫描",
+            "短压缩层",
+            "2×batch×short_layers×index_heads×index_dim×因果压缩对数",
             (
                 f"=2*{batch_name}*ShortLayers*IndexHeads*IndexHeadDim*"
                 f"{prefix}_IndexPairs"
@@ -621,7 +719,7 @@ def scenario_items(
             "=0",
             0,
             "Major",
-            "Scans all completed ratio-4 index entries before Top-K selection.",
+            "在选取 Top-K 前扫描所有已完成的 ratio-4 索引条目。",
         )
     )
 
@@ -649,8 +747,8 @@ def scenario_items(
     items.append(
         Item(
             "Attention",
-            "Main KV compressor projections",
-            "All compressed-KV layers",
+            "主 KV Compressor 投影",
+            "所有压缩 KV 层",
             "rows*(short_layers*8*hidden*head_dim+long_layers*4*hidden*head_dim)",
             (
                 f"={rows_name}*(ShortLayers*8*HiddenSize*HeadDim+"
@@ -672,7 +770,7 @@ def scenario_items(
             "=0",
             0,
             "Major",
-            "Replicated on every TP rank; ratio-4 uses overlapping 2x projections.",
+            "每个 TP Rank 都复制；ratio-4 使用重叠的 2 倍投影。",
         )
     )
 
@@ -691,8 +789,8 @@ def scenario_items(
     items.append(
         Item(
             "Attention",
-            "Indexer compressor projections",
-            "Short-compression layers",
+            "Indexer Compressor 投影",
+            "短压缩层",
             "rows*short_layers*8*hidden*index_dim",
             f"={rows_name}*ShortLayers*8*HiddenSize*IndexHeadDim",
             index_comp_global,
@@ -705,7 +803,7 @@ def scenario_items(
             "=0",
             0,
             "Major",
-            "Replicated auxiliary compressor used to build the Indexer cache.",
+            "复制的辅助 Compressor，用于构建 Indexer 缓存。",
         )
     )
 
@@ -720,8 +818,8 @@ def scenario_items(
     items.append(
         Item(
             "MoE",
-            "Router score projection",
-            "All active layers",
+            "Router 评分投影",
+            "所有启用层",
             "2*rows*layers*hidden*routed_experts",
             f"=2*{rows_name}*TotalLayers*HiddenSize*RoutedExperts",
             router_global,
@@ -739,7 +837,7 @@ def scenario_items(
             "=0",
             0,
             "Major",
-            "The source computes gate scores even in hash-routed layers.",
+            "即使是哈希路由层，源码仍会计算 Gate 分数。",
         )
     )
 
@@ -763,9 +861,9 @@ def scenario_items(
     items.append(
         Item(
             "MoE",
-            "Top-K routed experts",
-            "All active layers",
-            "rows*layers*top_k*(W1+W3+W2), MAC=2 FLOPs",
+            "Top-K 路由专家",
+            "所有启用层",
+            "rows×layers×top_k×(W1+W3+W2)，MAC=2 FLOPs",
             (
                 f"={rows_name}*TotalLayers*ActivatedExperts*6*"
                 "HiddenSize*ExpertInter"
@@ -790,7 +888,7 @@ def scenario_items(
             "=0",
             0,
             "Major",
-            "Balanced expected assignments per rank; parameter read uses expert activation probability.",
+            "每个 Rank 的均衡期望分配；参数读取使用专家至少被触发一次的概率。",
         )
     )
 
@@ -826,9 +924,9 @@ def scenario_items(
     items.append(
         Item(
             "MoE",
-            "Shared expert",
-            "All active layers",
-            "rows*layers*shared_experts*(W1+W3+W2), MAC=2 FLOPs",
+            "共享专家",
+            "所有启用层",
+            "rows×layers×shared_experts×(W1+W3+W2)，MAC=2 FLOPs",
             (
                 f"={rows_name}*TotalLayers*SharedExperts*6*"
                 "HiddenSize*ExpertInter"
@@ -851,7 +949,7 @@ def scenario_items(
             "=0",
             0,
             "Major",
-            "Shared experts are replicated and computed independently on every TP rank.",
+            "共享专家在每个 TP Rank 上复制，并独立计算。",
         )
     )
 
@@ -869,9 +967,9 @@ def scenario_items(
     items.append(
         Item(
             "Other",
-            "Hyper-Connections and block norms",
-            "All active layers",
-            "Two HC pre/post paths per block; Sinkhorn special math excluded",
+            "Hyper-Connections 与块归一化",
+            "所有启用层",
+            "每个块包含两条 HC 前/后路径；不含 Sinkhorn 特殊计算",
             (
                 f"=TotalLayers*2*(2*{rows_name}*HCSlots*HiddenSize*"
                 "((2+HCSlots)*HCSlots)+"
@@ -898,8 +996,8 @@ def scenario_items(
             hc_write,
             "=0",
             0,
-            "Auxiliary",
-            "Approximate HC arithmetic; sigmoid/exp are tracked qualitatively.",
+            "辅助",
+            "HC 计算为近似值；sigmoid/exp 仅做定性跟踪。",
         )
     )
 
@@ -910,9 +1008,9 @@ def scenario_items(
     items.append(
         Item(
             "Other",
-            "LM head",
-            "Tail",
-            "2*batch_or_decode_rows*hidden*vocab; prefill uses last token only",
+            "LM Head",
+            "模型尾部",
+            "2×batch_or_decode_rows×hidden×vocab；Prefill 仅使用最后一个 Token",
             (
                 "=2*PrefillBatch*HiddenSize*VocabSize"
                 if mode == "prefill"
@@ -940,7 +1038,7 @@ def scenario_items(
             "=0",
             0,
             "Major",
-            "The inference path computes logits only from the final hidden token.",
+            "推理路径仅根据最后一个隐藏令牌计算 logits。",
         )
     )
 
@@ -970,9 +1068,9 @@ def scenario_items(
     items.append(
         Item(
             "Communication",
-            "TP collectives",
-            "Embedding + each block + LM head",
-            "Ring AllReduce/AllGather send+receive bytes per rank",
+            "TP 集合通信",
+            "Embedding + 每个块 + LM Head",
+            "Ring AllReduce/AllGather 每 Rank 的发送与接收字节数",
             "=0",
             0,
             "=0",
@@ -988,8 +1086,8 @@ def scenario_items(
                 "LocalVocab*FP32Bytes"
             ),
             embedding_network + attention_network + moe_network + lm_network,
-            "Auxiliary",
-            "Zero at TP=1. This is transfer volume, not HBM traffic.",
+            "辅助",
+            "TP=1 时为零。这是传输量，不是 HBM 流量。",
         )
     )
     return items, helpers
@@ -1187,17 +1285,17 @@ def parameter_components(p: Inputs, layers: LayerCounts) -> list[ParameterCompon
     tail_count_xl = "HCSlots*HCSlots*HiddenSize+HCSlots+1+HiddenSize"
 
     return [
-        ParameterComponent("Attention", "Core Q/K/O projections", core_global_count_xl, core_global_count, core_rank_count_xl, core_rank_count, core_global_bytes_xl, core_global_bytes, core_rank_bytes_xl, core_rank_bytes, "Wq_a/Wkv replicated; Q/O output dimensions TP-sharded."),
-        ParameterComponent("Attention", "KV compressors", compressor_count_xl, compressor_count, compressor_count_xl, compressor_count, compressor_bytes_xl, compressor_bytes, compressor_bytes_xl, compressor_bytes, "Replicated FP32 inference compressor parameters."),
-        ParameterComponent("Attention", "Ratio-4 Indexers", index_global_count_xl, index_global_count, index_rank_count_xl, index_rank_count, index_global_bytes_xl, index_global_bytes, index_rank_bytes_xl, index_rank_bytes, "Indexer Q/weight projections are sharded; index compressor is replicated."),
-        ParameterComponent("MoE", "Routed experts", "TotalLayers*RoutedExperts*3*HiddenSize*ExpertInter", routed_global_count, "TotalLayers*LocalExperts*3*HiddenSize*ExpertInter", routed_rank_count, f"TotalLayers*RoutedExperts*{xl_expert_bytes()}", routed_global_bytes, f"TotalLayers*LocalExperts*{xl_expert_bytes()}", routed_rank_bytes, "FP4 routed experts are uniformly sharded across ranks."),
-        ParameterComponent("MoE", "Shared experts", "TotalLayers*SharedExperts*3*HiddenSize*ExpertInter", shared_global_count, "TotalLayers*SharedExperts*3*HiddenSize*ExpertInter", shared_global_count, shared_bytes_xl, shared_bytes, shared_bytes_xl, shared_bytes, "Shared FP8 experts are replicated on every rank."),
-        ParameterComponent("MoE", "Router and hash tables", router_count_xl, router_count, router_count_xl, router_count, router_bytes_xl, weights["router_rank"], router_bytes_xl, weights["router_rank"], "Gate, bias, and token-to-expert tables are replicated."),
-        ParameterComponent("Other", "Embedding", "VocabSize*HiddenSize", p.vocab * p.hidden, "LocalVocab*HiddenSize", p.vocab / p.tp * p.hidden, "VocabSize*HiddenSize*BF16Bytes", p.vocab * p.hidden * p.bf16_bytes, "LocalVocab*HiddenSize*BF16Bytes", weights["embedding"], "Vocabulary-parallel embedding."),
-        ParameterComponent("Other", "LM head", "VocabSize*HiddenSize", p.vocab * p.hidden, "LocalVocab*HiddenSize", p.vocab / p.tp * p.hidden, "VocabSize*HiddenSize*FP32Bytes", p.vocab * p.hidden * p.fp32_bytes, "LocalVocab*HiddenSize*FP32Bytes", weights["lm_head"], "Vocabulary-parallel FP32 inference head."),
-        ParameterComponent("Other", "Hyper-Connections", hc_count_xl, hc_count, hc_count_xl, hc_count, hc_bytes_xl, weights["hc_rank"], hc_bytes_xl, weights["hc_rank"], "Replicated HC parameters; inference only."),
-        ParameterComponent("Other", "Norms and attention sinks", norm_global_count_xl, norm_global_count, norm_rank_count_xl, norm_rank_count, f"({norm_global_count_xl})*FP32Bytes", norm_global_count * p.fp32_bytes, f"({norm_rank_count_xl})*FP32Bytes", weights["norms_rank"], "Only local attention-sink vectors are sharded."),
-        ParameterComponent("Other", "Tail HC and final norm", tail_count_xl, tail_count, tail_count_xl, tail_count, f"({tail_count_xl})*FP32Bytes", weights["tail_rank"], f"({tail_count_xl})*FP32Bytes", weights["tail_rank"], "Replicated final inference tail."),
+        ParameterComponent("Attention", "核心 Q/K/O 投影", core_global_count_xl, core_global_count, core_rank_count_xl, core_rank_count, core_global_bytes_xl, core_global_bytes, core_rank_bytes_xl, core_rank_bytes, "Wq_a/Wkv 复制；Q/O 输出维度按 TP 分片。"),
+        ParameterComponent("Attention", "KV 压缩器", compressor_count_xl, compressor_count, compressor_count_xl, compressor_count, compressor_bytes_xl, compressor_bytes, compressor_bytes_xl, compressor_bytes, "FP32 推理 Compressor 在每个 TP Rank 上复制。"),
+        ParameterComponent("Attention", "ratio-4 Indexer", index_global_count_xl, index_global_count, index_rank_count_xl, index_rank_count, index_global_bytes_xl, index_global_bytes, index_rank_bytes_xl, index_rank_bytes, "Indexer Q/权重投影按 TP 分片；Indexer Compressor 复制。"),
+        ParameterComponent("MoE", "路由专家", "TotalLayers*RoutedExperts*3*HiddenSize*ExpertInter", routed_global_count, "TotalLayers*LocalExperts*3*HiddenSize*ExpertInter", routed_rank_count, f"TotalLayers*RoutedExperts*{xl_expert_bytes()}", routed_global_bytes, f"TotalLayers*LocalExperts*{xl_expert_bytes()}", routed_rank_bytes, "FP4 路由专家在各 Rank 间均匀分片。"),
+        ParameterComponent("MoE", "共享专家", "TotalLayers*SharedExperts*3*HiddenSize*ExpertInter", shared_global_count, "TotalLayers*SharedExperts*3*HiddenSize*ExpertInter", shared_global_count, shared_bytes_xl, shared_bytes, shared_bytes_xl, shared_bytes, "FP8 共享专家在每个 Rank 上复制。"),
+        ParameterComponent("MoE", "Router 与哈希表", router_count_xl, router_count, router_count_xl, router_count, router_bytes_xl, weights["router_rank"], router_bytes_xl, weights["router_rank"], "Gate、偏置和令牌到专家的映射表在每个 Rank 上复制。"),
+        ParameterComponent("Other", "Embedding", "VocabSize*HiddenSize", p.vocab * p.hidden, "LocalVocab*HiddenSize", p.vocab / p.tp * p.hidden, "VocabSize*HiddenSize*BF16Bytes", p.vocab * p.hidden * p.bf16_bytes, "LocalVocab*HiddenSize*BF16Bytes", weights["embedding"], "Embedding 按词表维度并行。"),
+        ParameterComponent("Other", "LM Head", "VocabSize*HiddenSize", p.vocab * p.hidden, "LocalVocab*HiddenSize", p.vocab / p.tp * p.hidden, "VocabSize*HiddenSize*FP32Bytes", p.vocab * p.hidden * p.fp32_bytes, "LocalVocab*HiddenSize*FP32Bytes", weights["lm_head"], "FP32 推理 LM Head 按词表维度并行。"),
+        ParameterComponent("Other", "Hyper-Connections", hc_count_xl, hc_count, hc_count_xl, hc_count, hc_bytes_xl, weights["hc_rank"], hc_bytes_xl, weights["hc_rank"], "HC 参数在每个 Rank 上复制；仅用于推理。"),
+        ParameterComponent("Other", "归一化与注意力 Sink", norm_global_count_xl, norm_global_count, norm_rank_count_xl, norm_rank_count, f"({norm_global_count_xl})*FP32Bytes", norm_global_count * p.fp32_bytes, f"({norm_rank_count_xl})*FP32Bytes", weights["norms_rank"], "仅本地注意力 Sink 向量按 TP 分片。"),
+        ParameterComponent("Other", "尾部 HC 与最终归一化", tail_count_xl, tail_count, tail_count_xl, tail_count, f"({tail_count_xl})*FP32Bytes", weights["tail_rank"], f"({tail_count_xl})*FP32Bytes", weights["tail_rank"], "模型尾部推理参数在每个 Rank 上复制。"),
     ]
 
 
@@ -1297,130 +1395,112 @@ class CalculatorWriter:
         ws = self.workbook.add_worksheet("Parameters")
         ws.hide_gridlines(2)
         ws.freeze_panes(3, 0)
-        ws.write(0, 0, "DeepSeek V4 Flash - Editable Architecture Parameters", self.formats["title"])
-        ws.write(1, 0, "Blue cells are editable inputs. Green cells are derived Excel formulas.", self.formats["note"])
-        headers = ["Category", "Parameter", "Excel name", "Value", "Description", "Validation"]
+        ws.write(0, 0, "DeepSeek V4 Flash - 可编辑架构参数", self.formats["title"])
+        ws.write(1, 0, "蓝色单元格为可编辑输入，绿色单元格为 Excel 派生公式。", self.formats["note"])
+        headers = ["类别", "参数", "Excel 名称", "数值", "说明"]
         for col, header in enumerate(headers):
             ws.write(2, col, header, self.formats["header"])
 
         records: list[tuple[str, str, str, float, str, str]] = [
-            ("Parallel", "TP1 comparison size", "TP1Size", self.p.tp, "ranks", "First tensor-parallel configuration."),
-            ("Parallel", "TP8 comparison size", "TP8Size", self.p.comparison_tp, "ranks", "Second tensor-parallel configuration; editable."),
-            ("Scenario", "Prefill batch size", "PrefillBatch", self.p.prefill_batch, "sequences", "Editable prefill batch size."),
-            ("Scenario", "Prefill sequence length", "PrefillSequence", self.p.prefill_sequence, "tokens", "Prompt tokens processed in one prefill."),
-            ("Scenario", "Decode batch size", "DecodeBatch", self.p.decode_batch, "sequences", "Editable decode batch size."),
-            ("Scenario", "Decode tokens per step", "DecodeTokens", self.p.decode_tokens, "tokens", "Usually 1; formulas model each token at DecodeContext."),
-            ("Scenario", "Decode context", "DecodeContext", self.p.decode_context, "tokens", "Effective context visible during decode."),
-            ("Scenario", "Maximum allocated context", "MaxContext", self.p.max_context, "tokens", "KV cache preallocation capacity."),
-            ("Model", "Hidden size", "HiddenSize", self.p.hidden, "elements", "Transformer residual width."),
-            ("Model", "Vocabulary size", "VocabSize", self.p.vocab, "tokens", "Embedding and LM-head vocabulary."),
-            ("Attention", "Query heads", "NumHeads", self.p.heads, "heads", "Global Q-head count."),
-            ("Attention", "Head dimension", "HeadDim", self.p.head_dim, "elements", "Shared latent KV width and per-Q-head width."),
-            ("Attention", "RoPE dimension", "RopeDim", self.p.rope_dim, "elements", "Rotary dimensions inside HeadDim."),
-            ("Attention", "Q LoRA rank", "QLoraRank", self.p.q_rank, "elements", "Low-rank intermediate width for Q."),
-            ("Attention", "Output groups", "OGroups", self.p.o_groups, "groups", "Grouped low-rank output projection groups."),
-            ("Attention", "Output LoRA rank", "OLoraRank", self.p.o_rank, "elements", "Per-group output low-rank width."),
-            ("MoE", "Routed experts", "RoutedExperts", self.p.routed_experts, "experts", "Global routed-expert count per block."),
-            ("MoE", "Activated experts", "ActivatedExperts", self.p.activated_experts, "experts/token", "Top-K routed experts per token."),
-            ("MoE", "Shared experts", "SharedExperts", self.p.shared_experts, "experts", "Replicated shared experts per block."),
-            ("MoE", "Expert intermediate size", "ExpertInter", self.p.expert_inter, "elements", "SwiGLU expert intermediate width."),
-            ("Cache", "Raw sliding window", "WindowSize", self.p.window, "tokens", "Raw KV positions retained per layer."),
-            ("Cache", "Short compression ratio", "ShortRatio", self.p.short_ratio, "tokens/entry", "Default ratio-4 mode."),
-            ("Cache", "Long compression ratio", "LongRatio", self.p.long_ratio, "tokens/entry", "Default ratio-128 mode."),
-            ("Indexer", "Indexer heads", "IndexHeads", self.p.index_heads, "heads", "Global ratio-4 indexer heads."),
-            ("Indexer", "Indexer head dimension", "IndexHeadDim", self.p.index_dim, "elements", "Indexer Q/K dimension."),
-            ("Indexer", "Indexer Top-K", "IndexTopK", self.p.index_topk, "entries", "Compressed entries retained by ratio-4 attention."),
-            ("HC", "HC slots", "HCSlots", self.p.hc_slots, "streams", "Hyper-Connection residual streams."),
-            ("HC", "Sinkhorn iterations", "HCIters", self.p.hc_iters, "iterations", "HC combination normalization iterations."),
-            ("Routing", "Hash-routed layers", "HashLayers", self.p.hash_layers, "layers", "First active layers using token-ID routing."),
-            ("DType", "BF16 bytes", "BF16Bytes", self.p.bf16_bytes, "bytes", "Storage bytes per BF16 element."),
-            ("DType", "FP32 bytes", "FP32Bytes", self.p.fp32_bytes, "bytes", "Storage bytes per FP32 element."),
-            ("DType", "FP8 bytes", "FP8Bytes", self.p.fp8_bytes, "bytes", "Storage bytes per FP8 element."),
-            ("DType", "FP4 bytes", "FP4Bytes", self.p.fp4_bytes, "bytes", "Logical packed bytes per FP4 element."),
-            ("DType", "Scale bytes", "ScaleBytes", self.p.scale_bytes, "bytes", "E8M0 scale storage."),
-            ("DType", "INT32 bytes", "INT32Bytes", self.p.int32_bytes, "bytes", "Storage bytes per INT32 element."),
-            ("DType", "INT64 bytes", "INT64Bytes", self.p.int64_bytes, "bytes", "Storage bytes per INT64 element."),
-            ("Quantization", "FP8 scale block", "FP8Block", self.p.fp8_block, "elements", "2D FP8 weight scale block."),
-            ("Quantization", "FP4 scale block", "FP4Block", self.p.fp4_block, "elements", "FP4 expert scale block along K."),
-            ("Kernel", "Minimum sparse-attention heads", "KernelMinHeads", self.p.kernel_min_heads, "heads", "Kernel pads local heads below this value."),
-            ("Hardware", "Peak compute", "PeakTFLOPs", self.p.peak_tflops, "TFLOP/s", "Editable illustrative hardware peak."),
-            ("Hardware", "HBM bandwidth", "HBMBandwidthGBps", self.p.hbm_gbps, "GB/s", "Editable sustained/target HBM bandwidth."),
-            ("Hardware", "Interconnect bandwidth", "InterconnectGBps", self.p.interconnect_gbps, "GB/s", "Editable effective bidirectional bandwidth."),
-            ("Hardware", "Prefill target latency", "PrefillTargetMs", self.p.prefill_target_ms, "ms", "Used only to derive required HBM/interconnect bandwidth."),
-            ("Hardware", "Decode target latency", "DecodeTargetMs", self.p.decode_target_ms, "ms", "Used only to derive required HBM/interconnect bandwidth."),
+            ("并行", "TP1 对比规模", "TP1Size", self.p.tp, "ranks", "第一组张量并行配置。"),
+            ("并行", "TP8 对比规模", "TP8Size", self.p.comparison_tp, "ranks", "第二组张量并行配置，可编辑。"),
+            ("场景", "预填充批大小", "PrefillBatch", self.p.prefill_batch, "sequences", "可编辑的预填充批大小。"),
+            ("场景", "预填充序列长度", "PrefillSequence", self.p.prefill_sequence, "tokens", "一次预填充处理的提示词令牌数。"),
+            ("场景", "解码批大小", "DecodeBatch", self.p.decode_batch, "sequences", "可编辑的解码批大小。"),
+            ("场景", "每个解码步骤的令牌数", "DecodeTokens", self.p.decode_tokens, "tokens", "通常为 1；公式按解码上下文长度建模每个令牌。"),
+            ("场景", "解码上下文长度", "DecodeContext", self.p.decode_context, "tokens", "解码阶段可见的有效上下文长度。"),
+            ("场景", "最大预分配上下文长度", "MaxContext", self.p.max_context, "tokens", "KV 缓存的预分配容量。"),
+            ("模型", "隐藏维度", "HiddenSize", self.p.hidden, "elements", "Transformer 残差宽度。"),
+            ("模型", "词表大小", "VocabSize", self.p.vocab, "tokens", "Embedding 与 LM Head 使用的词表大小。"),
+            ("注意力", "查询头数", "NumHeads", self.p.heads, "heads", "全局 Query 头数量。"),
+            ("注意力", "头维度", "HeadDim", self.p.head_dim, "elements", "共享潜在 KV 宽度及每个 Query 头的宽度。"),
+            ("注意力", "RoPE 维度", "RopeDim", self.p.rope_dim, "elements", "HeadDim 中用于旋转位置编码的维度。"),
+            ("注意力", "Q LoRA 秩", "QLoraRank", self.p.q_rank, "elements", "Q 投影的低秩中间宽度。"),
+            ("注意力", "输出分组数", "OGroups", self.p.o_groups, "groups", "分组低秩输出投影的分组数量。"),
+            ("注意力", "输出 LoRA 秩", "OLoraRank", self.p.o_rank, "elements", "每个输出分组的低秩宽度。"),
+            ("混合专家", "路由专家数", "RoutedExperts", self.p.routed_experts, "experts", "每个专家块的全局路由专家数量。"),
+            ("混合专家", "激活专家数", "ActivatedExperts", self.p.activated_experts, "experts/token", "每个令牌选取的 Top-K 路由专家数量。"),
+            ("混合专家", "共享专家数", "SharedExperts", self.p.shared_experts, "experts", "每个专家块复制的共享专家数量。"),
+            ("混合专家", "专家中间维度", "ExpertInter", self.p.expert_inter, "elements", "SwiGLU 专家的中间维度。"),
+            ("缓存", "原始滑动窗口", "WindowSize", self.p.window, "tokens", "每层保留的原始 KV 位置数量。"),
+            ("缓存", "短压缩比例", "ShortRatio", self.p.short_ratio, "tokens/entry", "默认的 ratio-4 模式。"),
+            ("缓存", "长压缩比例", "LongRatio", self.p.long_ratio, "tokens/entry", "默认的 ratio-128 模式。"),
+            ("索引器", "索引头数", "IndexHeads", self.p.index_heads, "heads", "全局 ratio-4 Indexer 头数量。"),
+            ("索引器", "索引头维度", "IndexHeadDim", self.p.index_dim, "elements", "Indexer Q/K 的维度。"),
+            ("索引器", "Indexer Top-K", "IndexTopK", self.p.index_topk, "entries", "ratio-4 注意力保留的压缩条目数量。"),
+            ("HC", "HC 槽位数", "HCSlots", self.p.hc_slots, "streams", "Hyper-Connection 残差流数量。"),
+            ("HC", "Sinkhorn 迭代次数", "HCIters", self.p.hc_iters, "iterations", "HC 组合归一化的迭代次数。"),
+            ("路由", "哈希路由层数", "HashLayers", self.p.hash_layers, "layers", "使用令牌编号到专家编号的路由起始层数量。"),
+            ("数据类型", "BF16 字节数", "BF16Bytes", self.p.bf16_bytes, "bytes", "每个 BF16 元素占用的存储字节数。"),
+            ("数据类型", "FP32 字节数", "FP32Bytes", self.p.fp32_bytes, "bytes", "每个 FP32 元素占用的存储字节数。"),
+            ("数据类型", "FP8 字节数", "FP8Bytes", self.p.fp8_bytes, "bytes", "每个 FP8 元素占用的存储字节数。"),
+            ("数据类型", "FP4 字节数", "FP4Bytes", self.p.fp4_bytes, "bytes", "每个 FP4 元素的逻辑打包字节数。"),
+            ("数据类型", "Scale 字节数", "ScaleBytes", self.p.scale_bytes, "bytes", "E8M0 Scale 的存储字节数。"),
+            ("数据类型", "INT32 字节数", "INT32Bytes", self.p.int32_bytes, "bytes", "每个 INT32 元素占用的存储字节数。"),
+            ("数据类型", "INT64 字节数", "INT64Bytes", self.p.int64_bytes, "bytes", "每个 INT64 元素占用的存储字节数。"),
+            ("量化", "FP8 Scale 分块大小", "FP8Block", self.p.fp8_block, "elements", "二维 FP8 权重 Scale 的分块大小。"),
+            ("量化", "FP4 Scale 分块大小", "FP4Block", self.p.fp4_block, "elements", "沿 K 维度的 FP4 专家 Scale 分块大小。"),
+            ("内核", "稀疏注意力最小头数", "KernelMinHeads", self.p.kernel_min_heads, "heads", "当本地头数不足时，内核补齐到该头数。"),
+            ("硬件", "峰值算力", "PeakTFLOPs", self.p.peak_tflops, "TFLOP/s", "可编辑的示例硬件峰值算力。"),
+            ("硬件", "HBM 带宽", "HBMBandwidthGBps", self.p.hbm_gbps, "GB/s", "可编辑的持续/目标 HBM 带宽。"),
+            ("硬件", "卡间互连带宽", "InterconnectGBps", self.p.interconnect_gbps, "GB/s", "可编辑的有效双向互连带宽。"),
+            ("硬件", "预填充目标延迟", "PrefillTargetMs", self.p.prefill_target_ms, "ms", "仅用于推导所需 HBM 带宽和卡间互连带宽。"),
+            ("硬件", "解码目标延迟", "DecodeTargetMs", self.p.decode_target_ms, "ms", "仅用于推导所需 HBM 带宽和卡间互连带宽。"),
         ]
         row = 3
         for category, label, name, value, unit, description in records:
             ws.write(row, 0, category, self.formats["text"])
             ws.write(row, 1, label, self.formats["text"])
             ws.write(row, 2, name, self.formats["text"])
-            ws.write_number(row, 3, value, self._unit_number_format("input", unit))
+            ws.write_number(row, 3, value, self._unit_number_format("input", display_label(unit)))
             ws.write(row, 4, description, self.formats["text"])
             self.parameter_rows[name] = row
             self._define_cell_name(name, "Parameters", row, 3)
             row += 1
 
         derived = [
-            ("Derived", "Active layers", "TotalLayers", "=SUM(Layer_Config!$B$4:$B$67)", self.layers.total, "layers", "Count of active Layer_Config rows."),
-            ("Derived", "Window-only layers", "WindowLayers", '=COUNTIFS(Layer_Config!$B$4:$B$67,1,Layer_Config!$C$4:$C$67,"window")', self.layers.window, "layers", "Active window-only rows."),
-            ("Derived", "Short-compression layers", "ShortLayers", '=COUNTIFS(Layer_Config!$B$4:$B$67,1,Layer_Config!$C$4:$C$67,"short")', self.layers.short, "layers", "Active ratio-4/short rows."),
-            ("Derived", "Long-compression layers", "LongLayers", '=COUNTIFS(Layer_Config!$B$4:$B$67,1,Layer_Config!$C$4:$C$67,"long")', self.layers.long, "layers", "Active ratio-128/long rows."),
-            ("Derived", "Active hash layers", "ActiveHashLayers", '=COUNTIFS(Layer_Config!$B$4:$B$67,1,Layer_Config!$A$4:$A$67,"<"&HashLayers)', self.layers.hash, "layers", "Active layer IDs below HashLayers."),
-            ("Derived", "TP1 local Q heads", "TP1LocalHeads", "=NumHeads/TP1Size", self.p.heads / self.p.tp, "heads/rank", "Q heads on one TP1 rank."),
-            ("Derived", "TP1 kernel local heads", "TP1KernelLocalHeads", "=MAX(TP1LocalHeads,KernelMinHeads)", max(self.p.heads / self.p.tp, self.p.kernel_min_heads), "heads/rank", "Sparse-kernel heads after padding."),
-            ("Derived", "TP1 local index heads", "TP1LocalIndexHeads", "=IndexHeads/TP1Size", self.p.index_heads / self.p.tp, "heads/rank", "Indexer heads on one TP1 rank."),
-            ("Derived", "TP1 local experts", "TP1LocalExperts", "=RoutedExperts/TP1Size", self.p.routed_experts / self.p.tp, "experts/rank", "Routed experts on one TP1 rank."),
-            ("Derived", "TP1 local output groups", "TP1LocalOGroups", "=OGroups/TP1Size", self.p.o_groups / self.p.tp, "groups/rank", "Output groups on one TP1 rank."),
-            ("Derived", "TP1 local vocabulary", "TP1LocalVocab", "=VocabSize/TP1Size", self.p.vocab / self.p.tp, "tokens/rank", "Vocabulary rows on one TP1 rank."),
-            ("Derived", "TP8 local Q heads", "TP8LocalHeads", "=NumHeads/TP8Size", self.p.heads / self.p.comparison_tp, "heads/rank", "Q heads on one TP8 rank."),
-            ("Derived", "TP8 kernel local heads", "TP8KernelLocalHeads", "=MAX(TP8LocalHeads,KernelMinHeads)", max(self.p.heads / self.p.comparison_tp, self.p.kernel_min_heads), "heads/rank", "Sparse-kernel heads after padding."),
-            ("Derived", "TP8 local index heads", "TP8LocalIndexHeads", "=IndexHeads/TP8Size", self.p.index_heads / self.p.comparison_tp, "heads/rank", "Indexer heads on one TP8 rank."),
-            ("Derived", "TP8 local experts", "TP8LocalExperts", "=RoutedExperts/TP8Size", self.p.routed_experts / self.p.comparison_tp, "experts/rank", "Routed experts on one TP8 rank."),
-            ("Derived", "TP8 local output groups", "TP8LocalOGroups", "=OGroups/TP8Size", self.p.o_groups / self.p.comparison_tp, "groups/rank", "Output groups on one TP8 rank."),
-            ("Derived", "TP8 local vocabulary", "TP8LocalVocab", "=VocabSize/TP8Size", self.p.vocab / self.p.comparison_tp, "tokens/rank", "Vocabulary rows on one TP8 rank."),
+            ("派生", "有效层数", "TotalLayers", "=SUM(Layer_Config!$B$4:$B$67)", self.layers.total, "layers", "Layer_Config 中启用的层数。"),
+            ("派生", "仅窗口层数", "WindowLayers", '=COUNTIFS(Layer_Config!$B$4:$B$67,1,Layer_Config!$C$4:$C$67,"window")', self.layers.window, "layers", "启用的窗口模式层数。"),
+            ("派生", "短压缩层数", "ShortLayers", '=COUNTIFS(Layer_Config!$B$4:$B$67,1,Layer_Config!$C$4:$C$67,"short")', self.layers.short, "layers", "启用的 ratio-4/短压缩层数。"),
+            ("派生", "长压缩层数", "LongLayers", '=COUNTIFS(Layer_Config!$B$4:$B$67,1,Layer_Config!$C$4:$C$67,"long")', self.layers.long, "layers", "启用的 ratio-128/长压缩层数。"),
+            ("派生", "有效哈希层数", "ActiveHashLayers", '=COUNTIFS(Layer_Config!$B$4:$B$67,1,Layer_Config!$A$4:$A$67,"<"&HashLayers)', self.layers.hash, "layers", "层 ID 小于 HashLayers 且已启用的层数。"),
+            ("派生", "TP1 本地 Q 头数", "TP1LocalHeads", "=NumHeads/TP1Size", self.p.heads / self.p.tp, "heads/rank", "单个 TP1 Rank 上的 Q 头数。"),
+            ("派生", "TP1 内核本地头数", "TP1KernelLocalHeads", "=MAX(TP1LocalHeads,KernelMinHeads)", max(self.p.heads / self.p.tp, self.p.kernel_min_heads), "heads/rank", "补齐后的稀疏内核本地头数。"),
+            ("派生", "TP1 本地索引头数", "TP1LocalIndexHeads", "=IndexHeads/TP1Size", self.p.index_heads / self.p.tp, "heads/rank", "单个 TP1 Rank 上的 Indexer 头数。"),
+            ("派生", "TP1 本地专家数", "TP1LocalExperts", "=RoutedExperts/TP1Size", self.p.routed_experts / self.p.tp, "experts/rank", "单个 TP1 Rank 上的路由专家数。"),
+            ("派生", "TP1 本地输出分组数", "TP1LocalOGroups", "=OGroups/TP1Size", self.p.o_groups / self.p.tp, "groups/rank", "单个 TP1 Rank 上的输出分组数。"),
+            ("派生", "TP1 本地词表大小", "TP1LocalVocab", "=VocabSize/TP1Size", self.p.vocab / self.p.tp, "tokens/rank", "单个 TP1 Rank 上的词表行数。"),
+            ("派生", "TP8 本地 Q 头数", "TP8LocalHeads", "=NumHeads/TP8Size", self.p.heads / self.p.comparison_tp, "heads/rank", "单个 TP8 Rank 上的 Q 头数。"),
+            ("派生", "TP8 内核本地头数", "TP8KernelLocalHeads", "=MAX(TP8LocalHeads,KernelMinHeads)", max(self.p.heads / self.p.comparison_tp, self.p.kernel_min_heads), "heads/rank", "补齐后的稀疏内核本地头数。"),
+            ("派生", "TP8 本地索引头数", "TP8LocalIndexHeads", "=IndexHeads/TP8Size", self.p.index_heads / self.p.comparison_tp, "heads/rank", "单个 TP8 Rank 上的 Indexer 头数。"),
+            ("派生", "TP8 本地专家数", "TP8LocalExperts", "=RoutedExperts/TP8Size", self.p.routed_experts / self.p.comparison_tp, "experts/rank", "单个 TP8 Rank 上的路由专家数。"),
+            ("派生", "TP8 本地输出分组数", "TP8LocalOGroups", "=OGroups/TP8Size", self.p.o_groups / self.p.comparison_tp, "groups/rank", "单个 TP8 Rank 上的输出分组数。"),
+            ("派生", "TP8 本地词表大小", "TP8LocalVocab", "=VocabSize/TP8Size", self.p.vocab / self.p.comparison_tp, "tokens/rank", "单个 TP8 Rank 上的词表行数。"),
         ]
         for category, label, name, formula, value, unit, description in derived:
             ws.write(row, 0, category, self.formats["text"])
             ws.write(row, 1, label, self.formats["text"])
             ws.write(row, 2, name, self.formats["text"])
-            ws.write_formula(row, 3, formula, self._unit_number_format("derived", unit), value)
+            ws.write_formula(row, 3, formula, self._unit_number_format("derived", display_label(unit)), value)
             ws.write(row, 4, description, self.formats["text"])
             self.parameter_rows[name] = row
             self._define_cell_name(name, "Parameters", row, 3)
             row += 1
 
-        checks = [
-            ("Q heads divisible by TP1 and TP8", "=IF(AND(MOD(NumHeads,TP1Size)=0,MOD(NumHeads,TP8Size)=0),\"OK\",\"ERROR\")", self.p.heads % self.p.tp == 0 and self.p.heads % self.p.comparison_tp == 0),
-            ("Experts divisible by TP1 and TP8", "=IF(AND(MOD(RoutedExperts,TP1Size)=0,MOD(RoutedExperts,TP8Size)=0),\"OK\",\"ERROR\")", self.p.routed_experts % self.p.tp == 0 and self.p.routed_experts % self.p.comparison_tp == 0),
-            ("Output groups divisible by TP1 and TP8", "=IF(AND(MOD(OGroups,TP1Size)=0,MOD(OGroups,TP8Size)=0),\"OK\",\"ERROR\")", self.p.o_groups % self.p.tp == 0 and self.p.o_groups % self.p.comparison_tp == 0),
-            ("Indexer heads divisible by TP1 and TP8", "=IF(AND(MOD(IndexHeads,TP1Size)=0,MOD(IndexHeads,TP8Size)=0),\"OK\",\"ERROR\")", self.p.index_heads % self.p.tp == 0 and self.p.index_heads % self.p.comparison_tp == 0),
-            ("Top-K is valid", "=IF(ActivatedExperts<=RoutedExperts,\"OK\",\"ERROR\")", self.p.activated_experts <= self.p.routed_experts),
-            ("RoPE fits in head", "=IF(RopeDim<=HeadDim,\"OK\",\"ERROR\")", self.p.rope_dim <= self.p.head_dim),
-        ]
-        row += 1
-        ws.write(row, 0, "Architecture validation", self.formats["section"])
-        ws.merge_range(row, 0, row, 5, "Architecture validation", self.formats["section"])
-        row += 1
-        for label, formula, valid in checks:
-            ws.write(row, 0, label, self.formats["text"])
-            ws.write_formula(row, 5, formula, self.formats["ok"], "OK" if valid else "ERROR")
-            row += 1
-        ws.conditional_format(3, 5, row, 5, {"type": "text", "criteria": "containing", "value": "ERROR", "format": self.workbook.add_format({"bg_color": "#FFC7CE", "font_color": "#9C0006"})})
-        ws.autofilter(2, 0, 2 + len(records) + len(derived), 5)
+        ws.autofilter(2, 0, 2 + len(records) + len(derived), 4)
         ws.set_column("A:A", 16)
         ws.set_column("B:B", 29)
         ws.set_column("C:C", 25)
         ws.set_column("D:D", 18)
         ws.set_column("E:E", 58)
-        ws.set_column("F:F", 16)
 
     def write_layer_config(self) -> None:
         ws = self.workbook.add_worksheet("Layer_Config")
         ws.hide_gridlines(2)
         ws.freeze_panes(3, 0)
-        ws.write(0, 0, "Per-Layer Attention and Routing Configuration", self.formats["title"])
-        ws.write(1, 0, "Edit Active and Mode. Compression ratio and routing behavior update automatically.", self.formats["note"])
-        headers = ["Layer ID", "Active", "Mode", "Compression ratio", "Attention behavior", "Routing behavior"]
+        ws.write(0, 0, "逐层注意力与路由配置", self.formats["title"])
+        ws.write(1, 0, "可编辑启用状态和模式；压缩比例与路由行为会自动更新。", self.formats["note"])
+        headers = ["层 ID", "启用", "模式", "压缩比例", "注意力行为", "路由行为"]
         for col, header in enumerate(headers):
             ws.write(2, col, header, self.formats["header"])
         for index in range(MAX_LAYER_ROWS):
@@ -1433,11 +1513,11 @@ class CalculatorWriter:
             ws.write(row, 2, mode, self.formats["input"])
             ratio_formula = f'=IF(C{row + 1}="window",0,IF(C{row + 1}="short",ShortRatio,LongRatio))'
             ws.write_formula(row, 3, ratio_formula, self.formats["derived"], ratio if active else 0)
-            behavior_formula = f'=IF(B{row + 1}=0,"inactive",IF(C{row + 1}="window","raw sliding window",IF(C{row + 1}="short","compressed KV + Indexer Top-K","deterministic compressed KV")))'
-            behavior = "inactive" if not active else "raw sliding window" if mode == "window" else "compressed KV + Indexer Top-K" if mode == "short" else "deterministic compressed KV"
+            behavior_formula = f'=IF(B{row + 1}=0,"未启用",IF(C{row + 1}="window","原始滑动窗口",IF(C{row + 1}="short","压缩 KV + Indexer Top-K","确定性压缩 KV")))'
+            behavior = "未启用" if not active else "原始滑动窗口" if mode == "window" else "压缩 KV + Indexer Top-K" if mode == "short" else "确定性压缩 KV"
             ws.write_formula(row, 4, behavior_formula, self.formats["text"], behavior)
-            routing_formula = f'=IF(B{row + 1}=0,"inactive",IF(A{row + 1}<HashLayers,"hash","score"))'
-            routing = "inactive" if not active else "hash" if index < self.p.hash_layers else "score"
+            routing_formula = f'=IF(B{row + 1}=0,"未启用",IF(A{row + 1}<HashLayers,"哈希","评分"))'
+            routing = "未启用" if not active else "哈希" if index < self.p.hash_layers else "评分"
             ws.write_formula(row, 5, routing_formula, self.formats["text"], routing)
         ws.data_validation(3, 1, 3 + MAX_LAYER_ROWS - 1, 1, {"validate": "list", "source": [0, 1]})
         ws.data_validation(3, 2, 3 + MAX_LAYER_ROWS - 1, 2, {"validate": "list", "source": ["window", "short", "long"]})
@@ -1586,275 +1666,6 @@ class CalculatorWriter:
         ws.set_column("L:L", 13)
         ws.set_column("M:M", 62)
 
-    def write_memory(self) -> dict[str, float]:
-        ws = self.workbook.add_worksheet("Memory")
-        ws.hide_gridlines(2)
-        ws.freeze_panes(3, 0)
-        ws.write(0, 0, "Per-Rank Parameter and KV Capacity", self.formats["title"])
-        ws.write(1, 0, "All capacities are formulas. Runtime allocator overhead and transient kernel workspace are excluded.", self.formats["note"])
-        headers = ["Category", "Item", "Readable formula", "Bytes/rank", "GB/rank", "GiB/rank", "Notes"]
-        ws.write_row(2, 0, headers, self.formats["header"])
-        p = self.p
-        layers = self.layers
-        weights = weight_values(p, layers)
-
-        core_xl = (
-            f"TotalLayers*({xl_fp8('HiddenSize', 'QLoraRank')}+"
-            f"{xl_fp8('QLoraRank', 'LocalHeads*HeadDim')}+"
-            f"{xl_fp8('HiddenSize', 'HeadDim')}+"
-            "LocalHeads*HeadDim*OLoraRank*BF16Bytes+"
-            f"{xl_fp8('LocalOGroups*OLoraRank', 'HiddenSize')})"
-        )
-        main_comp_xl = (
-            "ShortLayers*(2*HiddenSize*(2*HeadDim)*FP32Bytes+ShortRatio*2*HeadDim*FP32Bytes+HeadDim*FP32Bytes)+"
-            "LongLayers*(2*HiddenSize*HeadDim*FP32Bytes+LongRatio*HeadDim*FP32Bytes+HeadDim*FP32Bytes)"
-        )
-        index_xl = (
-            f"ShortLayers*({xl_fp8('QLoraRank', 'LocalIndexHeads*IndexHeadDim')}+"
-            "HiddenSize*LocalIndexHeads*BF16Bytes+2*HiddenSize*(2*IndexHeadDim)*FP32Bytes+"
-            "ShortRatio*2*IndexHeadDim*FP32Bytes+IndexHeadDim*FP32Bytes)"
-        )
-        mix_hc = (2 + p.hc_slots) * p.hc_slots
-        parameter_rows = [
-            ("Parameters", "Embedding", "VocabSize/TPSize*HiddenSize*BF16Bytes", p.vocab / p.tp * p.hidden * p.bf16_bytes, "Vocabulary sharded."),
-            ("Parameters", "LM head", "VocabSize/TPSize*HiddenSize*FP32Bytes", p.vocab / p.tp * p.hidden * p.fp32_bytes, "Independent FP32 inference head."),
-            ("Parameters", "Core attention projections", core_xl, layers.total * weights["core_rank_layer"], "Includes FP8 scales; Wo_a is BF16 after conversion."),
-            ("Parameters", "Main KV compressors", main_comp_xl, layers.short * weights["short_main_compressor"] + layers.long * weights["long_main_compressor"], "Replicated across TP ranks."),
-            ("Parameters", "Ratio-4 Indexers", index_xl, layers.short * (weights["index_core_rank"] + weights["index_compressor"]), "Indexer projections plus its compressor."),
-            ("Parameters", "Routed experts", f"TotalLayers*LocalExperts*{xl_expert_bytes()}", weights["routed_rank"], "FP4 packed weights and per-32 scales."),
-            ("Parameters", "Shared experts", f"TotalLayers*SharedExperts*(2*{xl_fp8('HiddenSize', 'ExpertInter')}+{xl_fp8('ExpertInter', 'HiddenSize')})", weights["shared_rank"], "Replicated FP8 shared experts."),
-            ("Parameters", "Router and hash tables", "TotalLayers*RoutedExperts*HiddenSize*BF16Bytes+(TotalLayers-ActiveHashLayers)*RoutedExperts*FP32Bytes+ActiveHashLayers*VocabSize*ActivatedExperts*INT32Bytes", weights["router_rank"], "Gate weight, score bias, and token-to-expert tables."),
-            ("Parameters", "Hyper-Connections", "TotalLayers*2*(((2+HCSlots)*HCSlots)*HCSlots*HiddenSize*FP32Bytes+(((2+HCSlots)*HCSlots)+3)*FP32Bytes)", weights["hc_rank"], "Two HC parameter sets per block."),
-            ("Parameters", "Norms and attention sinks", "TotalLayers*(2*HiddenSize+QLoraRank+HeadDim+LocalHeads)*FP32Bytes", weights["norms_rank"], "Block norms, Q/KV norms, local sink."),
-            ("Parameters", "Tail HC and final norm", "HCSlots*HCSlots*HiddenSize*FP32Bytes+(HCSlots+1)*FP32Bytes+HiddenSize*FP32Bytes", weights["tail_rank"], "Final HC reduction and RMSNorm."),
-        ]
-
-        prefill_cache = cache_values(p, layers, p.prefill_sequence, p.prefill_batch)
-        decode_cache = cache_values(p, layers, p.decode_context, p.decode_batch)
-        allocated_prefill = cache_values(p, layers, p.max_context, p.prefill_batch)
-        allocated_decode = cache_values(p, layers, p.max_context, p.decode_batch)
-        cache_rows = [
-            ("KV Cache", "Prefill effective main KV", "PrefillBatch*HeadDim*BF16Bytes*(WindowLayers*MIN(PrefillSequence,WindowSize)+ShortLayers*(MIN(PrefillSequence,WindowSize)+INT(PrefillSequence/ShortRatio))+LongLayers*(MIN(PrefillSequence,WindowSize)+INT(PrefillSequence/LongRatio)))", prefill_cache["main"], "Raw plus generated compressed main-attention KV."),
-            ("KV Cache", "Prefill effective Indexer KV", "PrefillBatch*ShortLayers*INT(PrefillSequence/ShortRatio)*IndexHeadDim*BF16Bytes", prefill_cache["indexer"], "Ratio-4 index cache actually populated by 8K prefill."),
-            ("KV Cache", "Prefill compressor states", "PrefillBatch*FP32Bytes*(ShortLayers*2*(2*ShortRatio)*(2*HeadDim)+LongLayers*2*LongRatio*HeadDim+ShortLayers*2*(2*ShortRatio)*(2*IndexHeadDim))", prefill_cache["states"], "Main and Indexer incremental compressor states."),
-            ("KV Cache", "Prefill 1M preallocated cache", "PrefillBatch*(HeadDim*BF16Bytes*(WindowLayers*WindowSize+ShortLayers*(WindowSize+INT(MaxContext/ShortRatio))+LongLayers*(WindowSize+INT(MaxContext/LongRatio)))+ShortLayers*INT(MaxContext/ShortRatio)*IndexHeadDim*BF16Bytes)+PrefillBatch*FP32Bytes*(ShortLayers*2*(2*ShortRatio)*(2*HeadDim)+LongLayers*2*LongRatio*HeadDim+ShortLayers*2*(2*ShortRatio)*(2*IndexHeadDim))", allocated_prefill["total"], "Current implementation allocates from max context."),
-            ("KV Cache", "Decode effective main KV", "DecodeBatch*HeadDim*BF16Bytes*(WindowLayers*MIN(DecodeContext,WindowSize)+ShortLayers*(MIN(DecodeContext,WindowSize)+INT(DecodeContext/ShortRatio))+LongLayers*(MIN(DecodeContext,WindowSize)+INT(DecodeContext/LongRatio)))", decode_cache["main"], "Raw plus compressed main-attention KV at DecodeContext."),
-            ("KV Cache", "Decode effective Indexer KV", "DecodeBatch*ShortLayers*INT(DecodeContext/ShortRatio)*IndexHeadDim*BF16Bytes", decode_cache["indexer"], "Ratio-4 index cache at DecodeContext."),
-            ("KV Cache", "Decode compressor states", "DecodeBatch*FP32Bytes*(ShortLayers*2*(2*ShortRatio)*(2*HeadDim)+LongLayers*2*LongRatio*HeadDim+ShortLayers*2*(2*ShortRatio)*(2*IndexHeadDim))", decode_cache["states"], "Main and Indexer incremental compressor states."),
-            ("KV Cache", "Decode 1M preallocated cache", "DecodeBatch*(HeadDim*BF16Bytes*(WindowLayers*WindowSize+ShortLayers*(WindowSize+INT(MaxContext/ShortRatio))+LongLayers*(WindowSize+INT(MaxContext/LongRatio)))+ShortLayers*INT(MaxContext/ShortRatio)*IndexHeadDim*BF16Bytes)+DecodeBatch*FP32Bytes*(ShortLayers*2*(2*ShortRatio)*(2*HeadDim)+LongLayers*2*LongRatio*HeadDim+ShortLayers*2*(2*ShortRatio)*(2*IndexHeadDim))", allocated_decode["total"], "Allocated cache and states for DecodeBatch."),
-        ]
-
-        row = 3
-        parameter_total = 0.0
-        for category, item, expression, value, note in parameter_rows:
-            ws.write(row, 0, category, self.formats["text"])
-            ws.write(row, 1, item, self.formats["text"])
-            ws.write(row, 2, expression, self.formats["text"])
-            ws.write_formula(row, 3, f"={expression}", self.formats["bytes"], value)
-            ws.write_formula(row, 4, f"=D{row + 1}/1E9", self.formats["number"], value / 1e9)
-            ws.write_formula(row, 5, f"=D{row + 1}/2^30", self.formats["number"], value / 2**30)
-            ws.write(row, 6, note, self.formats["text"])
-            parameter_total += value
-            row += 1
-        parameter_total_row = row
-        ws.write(row, 0, "Parameters", self.formats["total"])
-        ws.write(row, 1, "Total parameter capacity/rank", self.formats["total"])
-        ws.write(row, 2, "SUM(parameter rows)", self.formats["total"])
-        ws.write_formula(row, 3, f"=SUM(D4:D{row})", self.formats["total"], parameter_total)
-        ws.write_formula(row, 4, f"=D{row + 1}/1E9", self.formats["total"], parameter_total / 1e9)
-        ws.write_formula(row, 5, f"=D{row + 1}/2^30", self.formats["total"], parameter_total / 2**30)
-        ws.write(row, 6, "Static runtime parameter estimate; excludes MTP.", self.formats["text"])
-        self.memory_rows["ParameterTotal"] = row
-        self._define_cell_name("ParameterTotalPerRank", "Memory", row, 3)
-        row += 2
-        cache_start = row
-        cache_lookup: dict[str, float] = {}
-        for category, item, expression, value, note in cache_rows:
-            ws.write(row, 0, category, self.formats["text"])
-            ws.write(row, 1, item, self.formats["text"])
-            ws.write(row, 2, expression, self.formats["text"])
-            ws.write_formula(row, 3, f"={expression}", self.formats["bytes"], value)
-            ws.write_formula(row, 4, f"=D{row + 1}/1E9", self.formats["number"], value / 1e9)
-            ws.write_formula(row, 5, f"=D{row + 1}/2^30", self.formats["number"], value / 2**30)
-            ws.write(row, 6, note, self.formats["text"])
-            cache_lookup[item] = value
-            self.memory_rows[item] = row
-            row += 1
-
-        transient_prefill = max(
-            p.prefill_batch * p.prefill_sequence * p.hc_slots * p.hidden * p.bf16_bytes,
-            p.prefill_batch * p.prefill_sequence * p.heads * p.head_dim * p.bf16_bytes,
-        )
-        transient_decode = max(
-            p.decode_batch * p.decode_tokens * p.hc_slots * p.hidden * p.bf16_bytes,
-            p.decode_batch * p.decode_tokens * p.heads * p.head_dim * p.bf16_bytes,
-        )
-        transient_rows = [
-            ("Transient", "Prefill largest major activation", "MAX(PrefillBatch*PrefillSequence*HCSlots*HiddenSize*BF16Bytes,PrefillBatch*PrefillSequence*NumHeads*HeadDim*BF16Bytes)", transient_prefill, "Max of HC state and full Q tensor; not allocator peak."),
-            ("Transient", "Decode largest major activation", "MAX(DecodeBatch*DecodeTokens*HCSlots*HiddenSize*BF16Bytes,DecodeBatch*DecodeTokens*NumHeads*HeadDim*BF16Bytes)", transient_decode, "Max of HC state and full Q tensor; not allocator peak."),
-        ]
-        row += 1
-        for category, item, expression, value, note in transient_rows:
-            ws.write(row, 0, category, self.formats["text"])
-            ws.write(row, 1, item, self.formats["text"])
-            ws.write(row, 2, expression, self.formats["text"])
-            ws.write_formula(row, 3, f"={expression}", self.formats["bytes"], value)
-            ws.write_formula(row, 4, f"=D{row + 1}/1E9", self.formats["number"], value / 1e9)
-            ws.write_formula(row, 5, f"=D{row + 1}/2^30", self.formats["number"], value / 2**30)
-            ws.write(row, 6, note, self.formats["text"])
-            row += 1
-
-        ws.autofilter(2, 0, row - 1, 6)
-        ws.set_column("A:A", 16)
-        ws.set_column("B:B", 35)
-        ws.set_column("C:C", 95)
-        ws.set_column("D:F", 20)
-        ws.set_column("G:G", 58)
-        return {
-            "parameter_total": parameter_total,
-            "prefill_effective_cache": prefill_cache["total"],
-            "prefill_allocated_cache": allocated_prefill["total"],
-            "decode_effective_cache": decode_cache["total"],
-            "decode_allocated_cache": allocated_decode["total"],
-            "prefill_transient": transient_prefill,
-            "decode_transient": transient_decode,
-        }
-
-    def write_comparison(self, memory: dict[str, float]) -> None:
-        ws = self.workbook.add_worksheet("Comparison")
-        ws.hide_gridlines(2)
-        ws.write(0, 0, "Prefill 8K vs Decode 1M", self.formats["title"])
-        ws.write(1, 0, "Values reference the two scenario sheets and update when inputs change.", self.formats["note"])
-        headers = ["Metric", "Prefill 8K", "Decode 1M", "Unit", "Interpretation"]
-        ws.write_row(3, 0, headers, self.formats["header"])
-        pf_start, pf_end = self.scenario_ranges["PF"]
-        dc_start, dc_end = self.scenario_ranges["DC"]
-        pf_first, pf_last = pf_start + 1, pf_end + 1
-        dc_first, dc_last = dc_start + 1, dc_end + 1
-        categories = ["Attention", "MoE", "Other"]
-        rows: list[tuple[str, str, str, float, float, str, str]] = []
-        pf_items, _ = scenario_items(self.p, self.layers, "prefill")
-        dc_items, _ = scenario_items(self.p, self.layers, "decode")
-        for category in categories:
-            pf_value = sum(item.rank_flops for item in pf_items if item.category == category)
-            dc_value = sum(item.rank_flops for item in dc_items if item.category == category)
-            rows.append(
-                (
-                    f"{category} FLOPs/rank",
-                    f'=SUMIF(Prefill_8K!$A${pf_first}:$A${pf_last},"{category}",Prefill_8K!$F${pf_first}:$F${pf_last})',
-                    f'=SUMIF(Decode_1M!$A${dc_first}:$A${dc_last},"{category}",Decode_1M!$F${dc_first}:$F${dc_last})',
-                    pf_value,
-                    dc_value,
-                    "FLOPs",
-                    "Per-rank logical/physical calculation according to TP and kernel padding.",
-                )
-            )
-        for category in ("Attention", "MoE", "Other"):
-            pf_value = sum(item.read_bytes + item.write_bytes for item in pf_items if item.category == category)
-            dc_value = sum(item.read_bytes + item.write_bytes for item in dc_items if item.category == category)
-            rows.append(
-                (
-                    f"{category} HBM traffic/rank",
-                    f'=SUMIF(Prefill_8K!$A${pf_first}:$A${pf_last},"{category}",Prefill_8K!$I${pf_first}:$I${pf_last})',
-                    f'=SUMIF(Decode_1M!$A${dc_first}:$A${dc_last},"{category}",Decode_1M!$I${dc_first}:$I${dc_last})',
-                    pf_value,
-                    dc_value,
-                    "bytes",
-                    "Logical reads plus writes; cache/fusion effects are not simulated.",
-                )
-            )
-        pf_hbm_total = sum(item.read_bytes + item.write_bytes for item in pf_items)
-        dc_hbm_total = sum(item.read_bytes + item.write_bytes for item in dc_items)
-        for category in ("Attention", "MoE", "Other"):
-            pf_value = sum(
-                item.read_bytes + item.write_bytes
-                for item in pf_items
-                if item.category == category
-            ) / pf_hbm_total
-            dc_value = sum(
-                item.read_bytes + item.write_bytes
-                for item in dc_items
-                if item.category == category
-            ) / dc_hbm_total
-            rows.append(
-                (
-                    f"{category} HBM share",
-                    f'=SUMIF(Prefill_8K!$A${pf_first}:$A${pf_last},"{category}",Prefill_8K!$I${pf_first}:$I${pf_last})/SUM(Prefill_8K!$I${pf_first}:$I${pf_last})',
-                    f'=SUMIF(Decode_1M!$A${dc_first}:$A${dc_last},"{category}",Decode_1M!$I${dc_first}:$I${dc_last})/SUM(Decode_1M!$I${dc_first}:$I${dc_last})',
-                    pf_value,
-                    dc_value,
-                    "fraction",
-                    "Share of modeled per-rank logical HBM reads plus writes.",
-                )
-            )
-
-        def memory_cell(label: str) -> str:
-            return f"Memory!D{self.memory_rows[label] + 1}"
-
-        prefill_effective_formula = "+".join(
-            memory_cell(label)
-            for label in (
-                "Prefill effective main KV",
-                "Prefill effective Indexer KV",
-                "Prefill compressor states",
-            )
-        )
-        decode_effective_formula = "+".join(
-            memory_cell(label)
-            for label in (
-                "Decode effective main KV",
-                "Decode effective Indexer KV",
-                "Decode compressor states",
-            )
-        )
-        rows.extend(
-            [
-                ("Effective KV + state", f"={prefill_effective_formula}", f"={decode_effective_formula}", memory["prefill_effective_cache"], memory["decode_effective_cache"], "bytes", "Scenario-populated cache and compressor states."),
-                ("Preallocated KV + state", f"={memory_cell('Prefill 1M preallocated cache')}", f"={memory_cell('Decode 1M preallocated cache')}", memory["prefill_allocated_cache"], memory["decode_allocated_cache"], "bytes", "Capacity reserved from MaxContext and each scenario batch."),
-                ("Parameters/rank", "=ParameterTotalPerRank", "=ParameterTotalPerRank", memory["parameter_total"], memory["parameter_total"], "bytes", "Weights do not scale with batch or sequence length."),
-            ]
-        )
-        row = 4
-        for label, pf_formula, dc_formula, pf_value, dc_value, unit, note in rows:
-            ws.write(row, 0, label, self.formats["text"])
-            ws.write_formula(row, 1, pf_formula, self.formats["scientific"], pf_value)
-            ws.write_formula(row, 2, dc_formula, self.formats["scientific"], dc_value)
-            ws.write(row, 3, unit, self.formats["text"])
-            ws.write(row, 4, note, self.formats["text"])
-            row += 1
-
-        flops_chart = self.workbook.add_chart({"type": "column", "subtype": "stacked"})
-        for column, name in ((1, "Prefill 8K"), (2, "Decode 1M")):
-            flops_chart.add_series(
-                {
-                    "name": name,
-                    "categories": ["Comparison", 4, 0, 6, 0],
-                    "values": ["Comparison", 4, column, 6, column],
-                }
-            )
-        flops_chart.set_title({"name": "Per-rank FLOPs distribution"})
-        flops_chart.set_y_axis({"name": "FLOPs", "log_base": 10})
-        flops_chart.set_style(10)
-        ws.insert_chart("G4", flops_chart, {"x_scale": 1.25, "y_scale": 1.15})
-
-        hbm_chart = self.workbook.add_chart({"type": "column", "subtype": "stacked"})
-        for column, name in ((1, "Prefill 8K"), (2, "Decode 1M")):
-            hbm_chart.add_series(
-                {
-                    "name": name,
-                    "categories": ["Comparison", 7, 0, 9, 0],
-                    "values": ["Comparison", 7, column, 9, column],
-                }
-            )
-        hbm_chart.set_title({"name": "Per-rank logical HBM traffic"})
-        hbm_chart.set_y_axis({"name": "Bytes", "log_base": 10})
-        hbm_chart.set_style(11)
-        ws.insert_chart("G21", hbm_chart, {"x_scale": 1.25, "y_scale": 1.15})
-        ws.set_column("A:A", 34)
-        ws.set_column("B:C", 22)
-        ws.set_column("D:D", 14)
-        ws.set_column("E:E", 65)
-
     def write_methodology(self) -> None:
         ws = self.workbook.add_worksheet("Methodology")
         ws.hide_gridlines(2)
@@ -1894,6 +1705,8 @@ class InferenceComparisonWriter(CalculatorWriter):
         self.p_tp8 = replace(p, tp=p.comparison_tp)
         self.scenario_refs: dict[tuple[str, str, str], str] = {}
         self.memory_refs: dict[tuple[str, str], str] = {}
+        self.scenario_worksheets: dict[str, Any] = {}
+        self.scenario_next_rows: dict[str, int] = {}
 
     def _formats(self) -> dict[str, Any]:
         formats = super()._formats()
@@ -2044,9 +1857,21 @@ class InferenceComparisonWriter(CalculatorWriter):
         ws.write_row(
             2,
             0,
-            ["Helper metric", "Value"],
+            ["辅助指标", "数值", "单位", "说明"],
             self.formats["header"],
         )
+        descriptions = {
+            "Token rows": "当前场景需要处理的令牌总数；预填充为批大小乘序列长度，解码为批大小乘每步令牌数。",
+            "Causal raw-window pairs": "因果原始窗口路径中可参与注意力计算的令牌对数量，按每个序列统计。",
+            "Capped short-compressed pairs": "短压缩路径的候选令牌对数量；按短压缩比例折叠，并受 Top-K 候选上限约束。",
+            "Long-compressed pairs": "长压缩路径按长压缩比例折叠后的候选令牌对数量。",
+            "Indexer scan pairs": "ratio-4 Indexer 评分时需要扫描的压缩条目数量，作为索引器计算量输入。",
+            "Raw-window candidates": "解码时原始滑动窗口可见的候选条目数量，受窗口大小和当前上下文长度限制。",
+            "Short-compressed Top-K candidates": "解码时短压缩路径最终保留的 Top-K 候选数量，取 Top-K 与已生成压缩条目数的较小值。",
+            "Long-compressed candidates": "解码时长压缩路径按长压缩比例生成的候选条目数量。",
+            "Indexer scan candidates": "解码时 ratio-4 Indexer 需要扫描的压缩条目数量，用于估算索引器评分计算量。",
+            "Expert activation probability": "在当前场景令牌数下，单个路由专家至少被激活一次的概率，用于估算路由专家参数读取量。",
+        }
         if mode == "prefill":
             raw_formula = "=IF(PrefillSequence<=WindowSize,PrefillSequence*(PrefillSequence+1)/2,WindowSize*(WindowSize+1)/2+(PrefillSequence-WindowSize)*WindowSize)"
             short_formula = "=IF(PrefillSequence<IndexTopK*ShortRatio,ShortRatio*INT(PrefillSequence/ShortRatio)*(INT(PrefillSequence/ShortRatio)-1)/2+INT(PrefillSequence/ShortRatio)*(MOD(PrefillSequence,ShortRatio)+1),ShortRatio*IndexTopK*(IndexTopK-1)/2+(PrefillSequence-IndexTopK*ShortRatio+1)*IndexTopK)"
@@ -2071,8 +1896,11 @@ class InferenceComparisonWriter(CalculatorWriter):
             ]
         row = 3
         for label, name, formula, value, unit in rows:
-            ws.write(row, 0, label, self.formats["text"])
-            ws.write_formula(row, 1, formula, self._unit_number_format("derived", unit), value)
+            ws.write(row, 0, display_label(label), self.formats["text"])
+            ws.write_formula(row, 1, formula, self._unit_number_format("derived", display_label(unit)), value)
+            ws.write(row, 2, display_label(unit), self.formats["text"])
+            ws.write(row, 3, descriptions[label], self.formats["text"])
+            ws.set_row(row, 54)
             self._define_cell_name(name, ws.name, row, 1)
             row += 1
         return row
@@ -2088,13 +1916,13 @@ class InferenceComparisonWriter(CalculatorWriter):
         ws.write(
             0,
             0,
-            f"{'8K Prefill' if is_prefill else '1M-context Decode'} - TP1 vs TP8 Inference",
+            f"{'8K 预填充' if is_prefill else '1M 上下文解码'} - TP1 与 TP8 推理对比",
             self.formats["title"],
         )
         ws.write(
             1,
             0,
-            "Inference only: no backward, gradients, optimizer, or training-state memory. Scrollable below row 3.",
+            "仅推理：不包含反向传播、梯度、优化器或训练状态内存。第 3 行以下可滚动查看。",
             self.formats["note"],
         )
         helper_end = self._write_scenario_helpers(ws, mode, prefix, helpers)
@@ -2105,24 +1933,24 @@ class InferenceComparisonWriter(CalculatorWriter):
         detail_first_excel = detail_first_row + 1
         detail_last_excel = detail_last_row + 1
         headers = [
-            "Category",
-            "Item",
-            "Layer scope",
+            "类别",
+            "算子/项目",
+            "层范围",
             "TP1 FLOPs",
             "TP8 FLOPs/rank",
             "TP1 HBM/rank",
             "TP8 HBM/rank",
-            "TP1 Interconnect",
-            "TP8 Interconnect/rank",
-            "Accounting",
-            "Notes",
+            "TP1 卡间互连",
+            "TP8 卡间互连/rank",
+            "统计类型",
+            "说明",
         ]
         ws.merge_range(
             detail_header_row - 1,
             0,
             detail_header_row - 1,
             len(headers) - 1,
-            "Detailed inference calculations",
+            "推理计算明细",
             self.formats["section"],
         )
         ws.write_row(detail_header_row, 0, headers, self.formats["header"])
@@ -2152,9 +1980,9 @@ class InferenceComparisonWriter(CalculatorWriter):
             tp1_hbm = f"=({self._formula_body(tp1_read)})+({self._formula_body(tp1_write)})"
             tp8_hbm = f"=({self._formula_body(tp8_read)})+({self._formula_body(tp8_write)})"
 
-            ws.write(row, 0, tp1_item.category, self.formats["text"])
+            ws.write(row, 0, display_label(tp1_item.category), self.formats["text"])
             ws.write(row, 1, tp1_item.name, self.formats["text"])
-            ws.write(row, 2, tp1_item.layer_scope, self.formats["text"])
+            ws.write(row, 2, display_label(tp1_item.layer_scope), self.formats["text"])
             ws.write_formula(
                 row,
                 raw_global_col,
@@ -2226,7 +2054,7 @@ class InferenceComparisonWriter(CalculatorWriter):
                 tp8_item.network_bytes,
                 "bytes",
             )
-            ws.write(row, 9, tp1_item.accounting, self.formats["text"])
+            ws.write(row, 9, display_label(tp1_item.accounting), self.formats["text"])
             ws.write(row, 10, tp1_item.notes, self.formats["text"])
 
         ws.add_table(
@@ -2243,12 +2071,12 @@ class InferenceComparisonWriter(CalculatorWriter):
         ws.set_column(raw_global_col, raw_tp8_hbm_col, None, None, {"hidden": True})
 
         summary_start = helper_end + 1
-        ws.merge_range(summary_start, 0, summary_start, 2, "Scenario summary", self.formats["section"])
+        ws.merge_range(summary_start, 0, summary_start, 2, "场景汇总", self.formats["section"])
         summary_header = summary_start + 1
         ws.write_row(
             summary_header,
             0,
-            ["Metric", "TP1", "TP8/rank"],
+            ["指标", "TP1", "TP8/每 Rank"],
             self.formats["header"],
         )
 
@@ -2264,9 +2092,11 @@ class InferenceComparisonWriter(CalculatorWriter):
         tp8_network_col = "$AB"
 
         def sum_category(column: str, category: str, accounting: str | None = None) -> str:
+            category_criteria = display_label(category)
             if accounting is None:
-                return f'SUMIF({category_col}${detail_first_excel}:{category_col}${detail_last_excel},"{category}",{column}${detail_first_excel}:{column}${detail_last_excel})'
-            return f'SUMIFS({column}${detail_first_excel}:{column}${detail_last_excel},{category_col}${detail_first_excel}:{category_col}${detail_last_excel},"{category}",{accounting_col}${detail_first_excel}:{accounting_col}${detail_last_excel},"{accounting}")'
+                return f'SUMIF({category_col}${detail_first_excel}:{category_col}${detail_last_excel},"{category_criteria}",{column}${detail_first_excel}:{column}${detail_last_excel})'
+            accounting_criteria = display_label(accounting)
+            return f'SUMIFS({column}${detail_first_excel}:{column}${detail_last_excel},{category_col}${detail_first_excel}:{category_col}${detail_last_excel},"{category_criteria}",{accounting_col}${detail_first_excel}:{accounting_col}${detail_last_excel},"{accounting_criteria}")'
 
         def category_hbm(read_col: str, write_col: str, category: str) -> str:
             return f"{sum_category(read_col, category)}+{sum_category(write_col, category)}"
@@ -2302,7 +2132,7 @@ class InferenceComparisonWriter(CalculatorWriter):
         raw_tp8_summary_col = 31
         for offset, (label, tp1_formula, tp1_value, tp8_formula, tp8_value, kind) in enumerate(specs):
             row = summary_header + 1 + offset
-            ws.write(row, 0, label, self.formats["text"])
+            ws.write(row, 0, display_label(label), self.formats["text"])
             self._write_human_value(
                 ws,
                 row,
@@ -2336,200 +2166,12 @@ class InferenceComparisonWriter(CalculatorWriter):
         ws.set_column("J:J", 13)
         ws.set_column("K:K", 60)
         ws.set_column("L:S", None, None, {"hidden": True})
+        self.scenario_worksheets[mode] = ws
+        self.scenario_next_rows[mode] = detail_last_row + 3
 
-    def write_memory(self) -> dict[str, float]:
-        sheet = "Memory"
-        ws = self.workbook.add_worksheet(sheet)
-        ws.hide_gridlines(2)
-        ws.freeze_panes(3, 0)
-        ws.write(0, 0, "TP1 / TP8 每 Rank 推理参数与 KV 容量", self.formats["title"])
-        ws.write(1, 0, "仅统计推理驻留数据；不含梯度、优化器、反向激活和训练状态。", self.formats["note"])
-        headers = [
-            "大类",
-            "参数组件",
-            "全局参数量",
-            "TP1 参数量/rank",
-            "TP8 参数量/rank",
-            "TP1 容量/rank",
-            "TP8 容量/rank",
-            "说明",
-        ]
-        ws.write_row(2, 0, headers, self.formats["header"])
+    def write_embedded_memory(self) -> dict[str, float]:
         tp1_components = parameter_components(self.p_tp1, self.layers)
         tp8_components = parameter_components(self.p_tp8, self.layers)
-        detail_first_row = 3
-        detail_last_row = detail_first_row + len(tp1_components) - 1
-        raw_global_count_col = 15
-        raw_tp1_count_col = 16
-        raw_tp8_count_col = 17
-        raw_global_bytes_col = 18
-        raw_tp1_bytes_col = 19
-        raw_tp8_bytes_col = 20
-
-        for offset, (tp1_component, tp8_component) in enumerate(
-            zip(tp1_components, tp8_components)
-        ):
-            row = detail_first_row + offset
-            tp1_count_formula = "=" + formula_for_tp(
-                tp1_component.rank_count_formula, "TP1"
-            )
-            tp8_count_formula = "=" + formula_for_tp(
-                tp8_component.rank_count_formula, "TP8"
-            )
-            tp1_bytes_formula = "=" + formula_for_tp(
-                tp1_component.rank_bytes_formula, "TP1"
-            )
-            tp8_bytes_formula = "=" + formula_for_tp(
-                tp8_component.rank_bytes_formula, "TP8"
-            )
-            ws.write(row, 0, tp1_component.category, self.formats["text"])
-            ws.write(row, 1, tp1_component.name, self.formats["text"])
-            self._write_combined_param_value(
-                ws,
-                row,
-                2,
-                raw_global_count_col,
-                "=" + tp1_component.global_count_formula,
-                tp1_component.global_count,
-            )
-            self._write_combined_param_value(
-                ws,
-                row,
-                3,
-                raw_tp1_count_col,
-                tp1_count_formula,
-                tp1_component.rank_count,
-            )
-            self._write_human_value(
-                ws,
-                row,
-                4,
-                4,
-                raw_tp8_count_col,
-                tp8_count_formula,
-                tp8_component.rank_count,
-                "params",
-            )
-            ws.write_formula(
-                row,
-                raw_global_bytes_col,
-                "=" + tp1_component.global_bytes_formula,
-                self.formats["number"],
-                tp1_component.global_bytes,
-            )
-            self._write_human_value(
-                ws,
-                row,
-                5,
-                5,
-                raw_tp1_bytes_col,
-                tp1_bytes_formula,
-                tp1_component.rank_bytes,
-                "bytes",
-            )
-            self._write_human_value(
-                ws,
-                row,
-                6,
-                6,
-                raw_tp8_bytes_col,
-                tp8_bytes_formula,
-                tp8_component.rank_bytes,
-                "bytes",
-            )
-            ws.write(row, 7, tp1_component.notes, self.formats["text"])
-
-        ws.add_table(
-            2,
-            0,
-            detail_last_row,
-            len(headers) - 1,
-            {
-                "name": "Inference_Parameter_Detail",
-                "style": "Table Style Medium 2",
-                "columns": [{"header": header} for header in headers],
-            },
-        )
-        ws.set_column(
-            raw_global_count_col,
-            raw_tp8_bytes_col,
-            None,
-            None,
-            {"hidden": True},
-        )
-
-        summary_start = detail_last_row + 2
-        ws.merge_range(
-            summary_start,
-            0,
-            summary_start,
-            4,
-            "参数量与参数容量汇总",
-            self.formats["section"],
-        )
-        summary_header = summary_start + 1
-        ws.write_row(
-            summary_header,
-            0,
-            [
-                "大类",
-                "TP1 参数量/rank",
-                "TP8 参数量/rank",
-                "TP1 容量/rank",
-                "TP8 容量/rank",
-            ],
-            self.formats["header"],
-        )
-        detail_first_excel = detail_first_row + 1
-        detail_last_excel = detail_last_row + 1
-        category_values: dict[str, dict[str, float]] = {}
-        raw_summary_cols = (15, 16, 17, 18)
-        for offset, category in enumerate(("Attention", "MoE", "Other", "Total")):
-            row = summary_header + 1 + offset
-            if category == "Total":
-                formulas = (
-                    f"=SUM($Q${detail_first_excel}:$Q${detail_last_excel})",
-                    f"=SUM($R${detail_first_excel}:$R${detail_last_excel})",
-                    f"=SUM($T${detail_first_excel}:$T${detail_last_excel})",
-                    f"=SUM($U${detail_first_excel}:$U${detail_last_excel})",
-                )
-                selected_tp1 = tp1_components
-                selected_tp8 = tp8_components
-            else:
-                formulas = (
-                    f'=SUMIF($A${detail_first_excel}:$A${detail_last_excel},"{category}",$Q${detail_first_excel}:$Q${detail_last_excel})',
-                    f'=SUMIF($A${detail_first_excel}:$A${detail_last_excel},"{category}",$R${detail_first_excel}:$R${detail_last_excel})',
-                    f'=SUMIF($A${detail_first_excel}:$A${detail_last_excel},"{category}",$T${detail_first_excel}:$T${detail_last_excel})',
-                    f'=SUMIF($A${detail_first_excel}:$A${detail_last_excel},"{category}",$U${detail_first_excel}:$U${detail_last_excel})',
-                )
-                selected_tp1 = [c for c in tp1_components if c.category == category]
-                selected_tp8 = [c for c in tp8_components if c.category == category]
-            values = {
-                "tp1_count": sum(c.rank_count for c in selected_tp1),
-                "tp8_count": sum(c.rank_count for c in selected_tp8),
-                "tp1_bytes": sum(c.rank_bytes for c in selected_tp1),
-                "tp8_bytes": sum(c.rank_bytes for c in selected_tp8),
-            }
-            category_values[category] = values
-            ws.write(row, 0, category, self.formats["total" if category == "Total" else "text"])
-            self._write_human_value(ws, row, 1, 2, raw_summary_cols[0], formulas[0], values["tp1_count"], "params", category == "Total")
-            self._write_human_value(ws, row, 2, 3, raw_summary_cols[1], formulas[1], values["tp8_count"], "params", category == "Total")
-            self._write_human_value(ws, row, 3, 4, raw_summary_cols[2], formulas[2], values["tp1_bytes"], "bytes", category == "Total")
-            self._write_human_value(ws, row, 4, 5, raw_summary_cols[3], formulas[3], values["tp8_bytes"], "bytes", category == "Total")
-            self.memory_refs[("TP1", f"{category} Parameter Count")] = self._cell(sheet, row, raw_summary_cols[0])
-            self.memory_refs[("TP8", f"{category} Parameter Count")] = self._cell(sheet, row, raw_summary_cols[1])
-            self.memory_refs[("TP1", f"{category} Parameter Capacity")] = self._cell(sheet, row, raw_summary_cols[2])
-            self.memory_refs[("TP8", f"{category} Parameter Capacity")] = self._cell(sheet, row, raw_summary_cols[3])
-
-        cache_start = summary_header + 7
-        ws.merge_range(cache_start, 0, cache_start, 3, "KV Cache 与 Compressor State（每 Rank，TP 间复制）", self.formats["section"])
-        cache_header = cache_start + 1
-        ws.write_row(
-            cache_header,
-            0,
-            ["项目", "TP1/rank", "TP8/rank", "说明"],
-            self.formats["header"],
-        )
         prefill_cache = cache_values(
             self.p,
             self.layers,
@@ -2543,219 +2185,558 @@ class InferenceComparisonWriter(CalculatorWriter):
             self.p.decode_batch,
         )
         allocated_prefill = cache_values(
-            self.p, self.layers, self.p.max_context, self.p.prefill_batch
+            self.p,
+            self.layers,
+            self.p.max_context,
+            self.p.prefill_batch,
         )
         allocated_decode = cache_values(
-            self.p, self.layers, self.p.max_context, self.p.decode_batch
+            self.p,
+            self.layers,
+            self.p.max_context,
+            self.p.decode_batch,
         )
-        cache_specs = [
-            ("Prefill effective main KV", "=PrefillBatch*HeadDim*BF16Bytes*(WindowLayers*MIN(PrefillSequence,WindowSize)+ShortLayers*(MIN(PrefillSequence,WindowSize)+INT(PrefillSequence/ShortRatio))+LongLayers*(MIN(PrefillSequence,WindowSize)+INT(PrefillSequence/LongRatio)))", prefill_cache["main"], "8K Prefill 已生成的主 Attention KV。"),
-            ("Prefill effective Indexer KV", "=PrefillBatch*ShortLayers*INT(PrefillSequence/ShortRatio)*IndexHeadDim*BF16Bytes", prefill_cache["indexer"], "8K Prefill 已生成的 ratio-4 Indexer KV。"),
-            ("Prefill compressor states", "=PrefillBatch*FP32Bytes*(ShortLayers*2*(2*ShortRatio)*(2*HeadDim)+LongLayers*2*LongRatio*HeadDim+ShortLayers*2*(2*ShortRatio)*(2*IndexHeadDim))", prefill_cache["states"], "主 Compressor 与 Indexer Compressor 状态。"),
-            ("Prefill preallocated KV + states", "=PrefillBatch*(HeadDim*BF16Bytes*(WindowLayers*WindowSize+ShortLayers*(WindowSize+INT(MaxContext/ShortRatio))+LongLayers*(WindowSize+INT(MaxContext/LongRatio)))+ShortLayers*INT(MaxContext/ShortRatio)*IndexHeadDim*BF16Bytes)+PrefillBatch*FP32Bytes*(ShortLayers*2*(2*ShortRatio)*(2*HeadDim)+LongLayers*2*LongRatio*HeadDim+ShortLayers*2*(2*ShortRatio)*(2*IndexHeadDim))", allocated_prefill["total"], "按 MaxContext 预分配，适合评估实际设备容量。"),
-            ("Decode effective main KV", "=DecodeBatch*HeadDim*BF16Bytes*(WindowLayers*MIN(DecodeContext,WindowSize)+ShortLayers*(MIN(DecodeContext,WindowSize)+INT(DecodeContext/ShortRatio))+LongLayers*(MIN(DecodeContext,WindowSize)+INT(DecodeContext/LongRatio)))", decode_cache["main"], "DecodeContext 下的主 Attention KV。"),
-            ("Decode effective Indexer KV", "=DecodeBatch*ShortLayers*INT(DecodeContext/ShortRatio)*IndexHeadDim*BF16Bytes", decode_cache["indexer"], "DecodeContext 下的 ratio-4 Indexer KV。"),
-            ("Decode compressor states", "=DecodeBatch*FP32Bytes*(ShortLayers*2*(2*ShortRatio)*(2*HeadDim)+LongLayers*2*LongRatio*HeadDim+ShortLayers*2*(2*ShortRatio)*(2*IndexHeadDim))", decode_cache["states"], "Decode Batch 对应的 Compressor 状态。"),
-            ("Decode preallocated KV + states", "=DecodeBatch*(HeadDim*BF16Bytes*(WindowLayers*WindowSize+ShortLayers*(WindowSize+INT(MaxContext/ShortRatio))+LongLayers*(WindowSize+INT(MaxContext/LongRatio)))+ShortLayers*INT(MaxContext/ShortRatio)*IndexHeadDim*BF16Bytes)+DecodeBatch*FP32Bytes*(ShortLayers*2*(2*ShortRatio)*(2*HeadDim)+LongLayers*2*LongRatio*HeadDim+ShortLayers*2*(2*ShortRatio)*(2*IndexHeadDim))", allocated_decode["total"], "按 MaxContext 预分配，KV 在每个 TP Rank 复制。"),
-        ]
-        raw_tp1_cache_col = 15
-        raw_tp8_cache_col = 16
-        for offset, (label, formula, value, note) in enumerate(cache_specs):
-            row = cache_header + 1 + offset
-            ws.write(row, 0, label, self.formats["text"])
-            self._write_human_value(ws, row, 1, 2, raw_tp1_cache_col, formula, value, "bytes")
-            self._write_human_value(ws, row, 2, 3, raw_tp8_cache_col, formula, value, "bytes")
-            ws.write(row, 3, note, self.formats["text"])
-            self.memory_refs[("TP1", label)] = self._cell(sheet, row, raw_tp1_cache_col)
-            self.memory_refs[("TP8", label)] = self._cell(sheet, row, raw_tp8_cache_col)
 
-        rank_start = cache_header + len(cache_specs) + 3
-        ws.merge_range(rank_start, 0, rank_start, 9, "单 Rank 设备驻留容量（默认均匀分片）", self.formats["section"])
-        rank_header = rank_start + 1
-        rank_headers = [
-            "配置",
-            "Rank",
-            "Attention 参数",
-            "MoE 参数",
-            "Other 参数",
-            "参数总计",
-            "Decode KV+State",
-            "总驻留",
-            "逻辑参数量",
-            "有效",
-        ]
-        ws.write_row(rank_header, 0, rank_headers, self.formats["header"])
-        rank_row = rank_header + 1
-        for label, size_name, p_config in (
-            ("TP1", "TP1Size", self.p_tp1),
-            ("TP8", "TP8Size", self.p_tp8),
-        ):
-            ws.write(rank_row, 0, label, self.formats["text"])
-            ws.write(rank_row, 1, "任一 Rank", self.formats["text"])
-            attention_ref = self.memory_refs[(label, "Attention Parameter Capacity")]
-            moe_ref = self.memory_refs[(label, "MoE Parameter Capacity")]
-            other_ref = self.memory_refs[(label, "Other Parameter Capacity")]
-            total_ref = self.memory_refs[(label, "Total Parameter Capacity")]
-            kv_ref = self.memory_refs[(label, "Decode preallocated KV + states")]
-            count_ref = self.memory_refs[(label, "Total Parameter Count")]
-            refs = (attention_ref, moe_ref, other_ref, total_ref, kv_ref)
-            values = (
-                category_values["Attention"][f"{label.lower()}_bytes"] / 1e9,
-                category_values["MoE"][f"{label.lower()}_bytes"] / 1e9,
-                category_values["Other"][f"{label.lower()}_bytes"] / 1e9,
-                category_values["Total"][f"{label.lower()}_bytes"] / 1e9,
-                allocated_decode["total"] / 1e9,
-            )
-            for col, (ref, value) in enumerate(zip(refs, values), start=2):
-                ws.write_formula(
-                    rank_row,
-                    col,
-                    f"={ref}/1E9",
-                    self._unit_number_format("number", "GB"),
-                    value,
-                )
-            total_resident = values[3] + values[4]
-            ws.write_formula(
-                rank_row,
-                7,
-                f"=F{rank_row + 1}+G{rank_row + 1}",
-                self._unit_number_format("number", "GB"),
-                total_resident,
-            )
-            count_value = category_values["Total"][f"{label.lower()}_count"] / 1e9
-            ws.write_formula(
-                rank_row,
-                8,
-                f"={count_ref}/1E9",
-                self._unit_number_format("number", "G"),
-                count_value,
-            )
-            ws.write(rank_row, 9, f"{p_config.tp} 个 Rank 均相同", self.formats["text"])
-            rank_row += 1
-        ws.add_table(
-            rank_header,
-            0,
-            rank_row - 1,
-            len(rank_headers) - 1,
-            {
-                "name": "Per_Rank_Inference_Memory",
-                "style": "Table Style Medium 4",
-                "columns": [{"header": header} for header in rank_headers],
-            },
-        )
-        ws.set_column(15, 20, None, None, {"hidden": True})
-        ws.set_column("A:A", 18)
-        ws.set_column("B:B", 32)
-        ws.set_column("C:J", 18)
-        ws.set_column("K:K", 58)
-
-        return {
-            "tp1_parameter_total": category_values["Total"]["tp1_bytes"],
-            "tp8_parameter_total": category_values["Total"]["tp8_bytes"],
-            "tp1_parameter_count": category_values["Total"]["tp1_count"],
-            "tp8_parameter_count": category_values["Total"]["tp8_count"],
-            "tp1_attention_parameter": category_values["Attention"]["tp1_bytes"],
-            "tp8_attention_parameter": category_values["Attention"]["tp8_bytes"],
-            "tp1_moe_parameter": category_values["MoE"]["tp1_bytes"],
-            "tp8_moe_parameter": category_values["MoE"]["tp8_bytes"],
-            "tp1_other_parameter": category_values["Other"]["tp1_bytes"],
-            "tp8_other_parameter": category_values["Other"]["tp8_bytes"],
-            "parameter_total": category_values["Total"]["tp1_bytes"],
+        memory = {
+            "tp1_parameter_total": sum(component.rank_bytes for component in tp1_components),
+            "tp8_parameter_total": sum(component.rank_bytes for component in tp8_components),
+            "tp1_parameter_count": sum(component.rank_count for component in tp1_components),
+            "tp8_parameter_count": sum(component.rank_count for component in tp8_components),
+            "tp1_attention_parameter": sum(component.rank_bytes for component in tp1_components if component.category == "Attention"),
+            "tp8_attention_parameter": sum(component.rank_bytes for component in tp8_components if component.category == "Attention"),
+            "tp1_moe_parameter": sum(component.rank_bytes for component in tp1_components if component.category == "MoE"),
+            "tp8_moe_parameter": sum(component.rank_bytes for component in tp8_components if component.category == "MoE"),
+            "tp1_other_parameter": sum(component.rank_bytes for component in tp1_components if component.category == "Other"),
+            "tp8_other_parameter": sum(component.rank_bytes for component in tp8_components if component.category == "Other"),
+            "parameter_total": sum(component.rank_bytes for component in tp1_components),
             "prefill_effective_cache": prefill_cache["total"],
             "prefill_allocated_cache": allocated_prefill["total"],
             "decode_effective_cache": decode_cache["total"],
             "decode_allocated_cache": allocated_decode["total"],
         }
+        cache_data = {
+            "prefill": (prefill_cache, allocated_prefill),
+            "decode": (decode_cache, allocated_decode),
+        }
+
+        for mode in ("prefill", "decode"):
+            ws = self.scenario_worksheets[mode]
+            prefix = "PF" if mode == "prefill" else "DC"
+            current_cache, allocated_cache = cache_data[mode]
+            start_row = self.scenario_next_rows[mode]
+            ws.merge_range(
+                start_row,
+                0,
+                start_row,
+                7,
+                f"参数与缓存：{('8K 预填充' if mode == 'prefill' else '1M 解码')} 参数与容量",
+                self.formats["section"],
+            )
+            detail_header = start_row + 1
+            detail_first_row = detail_header + 1
+            detail_last_row = detail_first_row + len(tp1_components) - 1
+            detail_headers = [
+                "大类",
+                "参数组件",
+                "全局参数量",
+                "TP1 参数量/rank",
+                "TP8 参数量/rank",
+                "TP1 容量/rank",
+                "TP8 容量/rank",
+                "说明",
+            ]
+            ws.write_row(detail_header, 0, detail_headers, self.formats["header"])
+            raw_global_count_col = 32
+            raw_tp1_count_col = 33
+            raw_tp8_count_col = 34
+            raw_tp1_bytes_col = 35
+            raw_tp8_bytes_col = 36
+            for offset, (tp1_component, tp8_component) in enumerate(
+                zip(tp1_components, tp8_components)
+            ):
+                row = detail_first_row + offset
+                tp1_count_formula = "=" + formula_for_tp(
+                    tp1_component.rank_count_formula, "TP1"
+                )
+                tp8_count_formula = "=" + formula_for_tp(
+                    tp8_component.rank_count_formula, "TP8"
+                )
+                tp1_bytes_formula = "=" + formula_for_tp(
+                    tp1_component.rank_bytes_formula, "TP1"
+                )
+                tp8_bytes_formula = "=" + formula_for_tp(
+                    tp8_component.rank_bytes_formula, "TP8"
+                )
+                ws.write(row, 0, display_label(tp1_component.category), self.formats["text"])
+                ws.write(row, 1, tp1_component.name, self.formats["text"])
+                self._write_combined_param_value(
+                    ws,
+                    row,
+                    2,
+                    raw_global_count_col,
+                    "=" + tp1_component.global_count_formula,
+                    tp1_component.global_count,
+                )
+                self._write_combined_param_value(
+                    ws,
+                    row,
+                    3,
+                    raw_tp1_count_col,
+                    tp1_count_formula,
+                    tp1_component.rank_count,
+                )
+                self._write_human_value(
+                    ws,
+                    row,
+                    4,
+                    4,
+                    raw_tp8_count_col,
+                    tp8_count_formula,
+                    tp8_component.rank_count,
+                    "params",
+                )
+                self._write_human_value(
+                    ws,
+                    row,
+                    5,
+                    5,
+                    raw_tp1_bytes_col,
+                    tp1_bytes_formula,
+                    tp1_component.rank_bytes,
+                    "bytes",
+                )
+                self._write_human_value(
+                    ws,
+                    row,
+                    6,
+                    6,
+                    raw_tp8_bytes_col,
+                    tp8_bytes_formula,
+                    tp8_component.rank_bytes,
+                    "bytes",
+                )
+                ws.write(row, 7, tp1_component.notes, self.formats["text"])
+            ws.add_table(
+                detail_header,
+                0,
+                detail_last_row,
+                len(detail_headers) - 1,
+                {
+                    "name": f"{prefix}_Embedded_Parameter_Detail",
+                    "style": "Table Style Medium 2",
+                    "columns": [{"header": header} for header in detail_headers],
+                },
+            )
+
+            summary_start = detail_last_row + 2
+            ws.merge_range(
+                summary_start,
+                0,
+                summary_start,
+                4,
+                "参数量与参数容量汇总",
+                self.formats["section"],
+            )
+            summary_header = summary_start + 1
+            summary_headers = [
+                "大类",
+                "TP1 参数量/rank",
+                "TP8 参数量/rank",
+                "TP1 容量/rank",
+                "TP8 容量/rank",
+            ]
+            ws.write_row(summary_header, 0, summary_headers, self.formats["header"])
+            detail_first_excel = detail_first_row + 1
+            detail_last_excel = detail_last_row + 1
+            tp1_count_col = xl_col_to_name(raw_tp1_count_col)
+            tp8_count_col = xl_col_to_name(raw_tp8_count_col)
+            tp1_bytes_col = xl_col_to_name(raw_tp1_bytes_col)
+            tp8_bytes_col = xl_col_to_name(raw_tp8_bytes_col)
+            raw_summary_cols = (37, 38, 39, 40)
+            local_memory_refs: dict[tuple[str, str], str] = {}
+            category_values: dict[str, dict[str, float]] = {}
+            for offset, category in enumerate(("Attention", "MoE", "Other", "Total")):
+                row = summary_header + 1 + offset
+                if category == "Total":
+                    selected_tp1 = tp1_components
+                    selected_tp8 = tp8_components
+                else:
+                    selected_tp1 = [
+                        component
+                        for component in tp1_components
+                        if component.category == category
+                    ]
+                    selected_tp8 = [
+                        component
+                        for component in tp8_components
+                        if component.category == category
+                    ]
+                if category == "Total":
+                    formulas = (
+                        f"=SUM(${tp1_count_col}${detail_first_excel}:${tp1_count_col}${detail_last_excel})",
+                        f"=SUM(${tp8_count_col}${detail_first_excel}:${tp8_count_col}${detail_last_excel})",
+                        f"=SUM(${tp1_bytes_col}${detail_first_excel}:${tp1_bytes_col}${detail_last_excel})",
+                        f"=SUM(${tp8_bytes_col}${detail_first_excel}:${tp8_bytes_col}${detail_last_excel})",
+                    )
+                else:
+                    category_criteria = display_label(category)
+                    formulas = (
+                        f'=SUMIF($A${detail_first_excel}:$A${detail_last_excel},"{category_criteria}",${tp1_count_col}${detail_first_excel}:${tp1_count_col}${detail_last_excel})',
+                        f'=SUMIF($A${detail_first_excel}:$A${detail_last_excel},"{category_criteria}",${tp8_count_col}${detail_first_excel}:${tp8_count_col}${detail_last_excel})',
+                        f'=SUMIF($A${detail_first_excel}:$A${detail_last_excel},"{category_criteria}",${tp1_bytes_col}${detail_first_excel}:${tp1_bytes_col}${detail_last_excel})',
+                        f'=SUMIF($A${detail_first_excel}:$A${detail_last_excel},"{category_criteria}",${tp8_bytes_col}${detail_first_excel}:${tp8_bytes_col}${detail_last_excel})',
+                    )
+                values = {
+                    "tp1_count": sum(component.rank_count for component in selected_tp1),
+                    "tp8_count": sum(component.rank_count for component in selected_tp8),
+                    "tp1_bytes": sum(component.rank_bytes for component in selected_tp1),
+                    "tp8_bytes": sum(component.rank_bytes for component in selected_tp8),
+                }
+                category_values[category] = values
+                ws.write(
+                    row,
+                    0,
+                    display_label(category),
+                    self.formats["total" if category == "Total" else "text"],
+                )
+                self._write_human_value(
+                    ws,
+                    row,
+                    1,
+                    1,
+                    raw_summary_cols[0],
+                    formulas[0],
+                    values["tp1_count"],
+                    "params",
+                    category == "Total",
+                )
+                self._write_human_value(
+                    ws,
+                    row,
+                    2,
+                    2,
+                    raw_summary_cols[1],
+                    formulas[1],
+                    values["tp8_count"],
+                    "params",
+                    category == "Total",
+                )
+                self._write_human_value(
+                    ws,
+                    row,
+                    3,
+                    3,
+                    raw_summary_cols[2],
+                    formulas[2],
+                    values["tp1_bytes"],
+                    "bytes",
+                    category == "Total",
+                )
+                self._write_human_value(
+                    ws,
+                    row,
+                    4,
+                    4,
+                    raw_summary_cols[3],
+                    formulas[3],
+                    values["tp8_bytes"],
+                    "bytes",
+                    category == "Total",
+                )
+                for label, raw_col in (
+                    (f"{category} Parameter Count", raw_summary_cols[0]),
+                    (f"{category} Parameter Capacity", raw_summary_cols[2]),
+                ):
+                    local_memory_refs[("TP1", label)] = self._cell(
+                        ws.name, row, raw_col
+                    )
+                for label, raw_col in (
+                    (f"{category} Parameter Count", raw_summary_cols[1]),
+                    (f"{category} Parameter Capacity", raw_summary_cols[3]),
+                ):
+                    local_memory_refs[("TP8", label)] = self._cell(
+                        ws.name, row, raw_col
+                    )
+                for key, value in local_memory_refs.items():
+                    self.memory_refs.setdefault(key, value)
+            ws.add_table(
+                summary_header,
+                0,
+                summary_header + 4,
+                len(summary_headers) - 1,
+                {
+                    "name": f"{prefix}_Embedded_Parameter_Summary",
+                    "style": "Table Style Medium 4",
+                    "columns": [{"header": header} for header in summary_headers],
+                },
+            )
+
+            cache_start = summary_header + 6
+            ws.merge_range(
+                cache_start,
+                0,
+                cache_start,
+                3,
+                "当前场景 KV 缓存与 Compressor 状态（每 Rank，TP 间复制）",
+                self.formats["section"],
+            )
+            cache_header = cache_start + 1
+            cache_headers = ["项目", "TP1/rank", "TP8/rank", "说明"]
+            ws.write_row(cache_header, 0, cache_headers, self.formats["header"])
+            if mode == "prefill":
+                cache_specs = [
+                    ("Prefill effective main KV", current_cache["main"], "预填充阶段已生成的主注意力 KV。", "=PrefillBatch*HeadDim*BF16Bytes*(WindowLayers*MIN(PrefillSequence,WindowSize)+ShortLayers*(MIN(PrefillSequence,WindowSize)+INT(PrefillSequence/ShortRatio))+LongLayers*(MIN(PrefillSequence,WindowSize)+INT(PrefillSequence/LongRatio)))"),
+                    ("Prefill effective Indexer KV", current_cache["indexer"], "预填充阶段已生成的 ratio-4 Indexer KV。", "=PrefillBatch*ShortLayers*INT(PrefillSequence/ShortRatio)*IndexHeadDim*BF16Bytes"),
+                    ("Prefill compressor states", current_cache["states"], "预填充阶段的 Compressor 与 Indexer 状态。", "=PrefillBatch*FP32Bytes*(ShortLayers*2*(2*ShortRatio)*(2*HeadDim)+LongLayers*2*LongRatio*HeadDim+ShortLayers*2*(2*ShortRatio)*(2*IndexHeadDim))"),
+                    ("Prefill preallocated KV + states", allocated_cache["total"], "按 MaxContext 为预填充阶段预分配。", "=PrefillBatch*(HeadDim*BF16Bytes*(WindowLayers*WindowSize+ShortLayers*(WindowSize+INT(MaxContext/ShortRatio))+LongLayers*(WindowSize+INT(MaxContext/LongRatio)))+ShortLayers*INT(MaxContext/ShortRatio)*IndexHeadDim*BF16Bytes)+PrefillBatch*FP32Bytes*(ShortLayers*2*(2*ShortRatio)*(2*HeadDim)+LongLayers*2*LongRatio*HeadDim+ShortLayers*2*(2*ShortRatio)*(2*IndexHeadDim))"),
+                ]
+            else:
+                cache_specs = [
+                    ("Decode effective main KV", current_cache["main"], "解码阶段的主注意力 KV。", "=DecodeBatch*HeadDim*BF16Bytes*(WindowLayers*MIN(DecodeContext,WindowSize)+ShortLayers*(MIN(DecodeContext,WindowSize)+INT(DecodeContext/ShortRatio))+LongLayers*(MIN(DecodeContext,WindowSize)+INT(DecodeContext/LongRatio)))"),
+                    ("Decode effective Indexer KV", current_cache["indexer"], "解码阶段的 ratio-4 Indexer KV。", "=DecodeBatch*ShortLayers*INT(DecodeContext/ShortRatio)*IndexHeadDim*BF16Bytes"),
+                    ("Decode compressor states", current_cache["states"], "解码阶段的 Compressor 与 Indexer 状态。", "=DecodeBatch*FP32Bytes*(ShortLayers*2*(2*ShortRatio)*(2*HeadDim)+LongLayers*2*LongRatio*HeadDim+ShortLayers*2*(2*ShortRatio)*(2*IndexHeadDim))"),
+                    ("Decode preallocated KV + states", allocated_cache["total"], "按 MaxContext 为解码阶段预分配。", "=DecodeBatch*(HeadDim*BF16Bytes*(WindowLayers*WindowSize+ShortLayers*(WindowSize+INT(MaxContext/ShortRatio))+LongLayers*(WindowSize+INT(MaxContext/LongRatio)))+ShortLayers*INT(MaxContext/ShortRatio)*IndexHeadDim*BF16Bytes)+DecodeBatch*FP32Bytes*(ShortLayers*2*(2*ShortRatio)*(2*HeadDim)+LongLayers*2*LongRatio*HeadDim+ShortLayers*2*(2*ShortRatio)*(2*IndexHeadDim))"),
+                ]
+            raw_tp1_cache_col = 41
+            raw_tp8_cache_col = 42
+            for offset, (label, value, note, formula) in enumerate(cache_specs):
+                row = cache_header + 1 + offset
+                ws.write(row, 0, display_label(label), self.formats["text"])
+                self._write_human_value(
+                    ws,
+                    row,
+                    1,
+                    1,
+                    raw_tp1_cache_col,
+                    formula,
+                    value,
+                    "bytes",
+                )
+                self._write_human_value(
+                    ws,
+                    row,
+                    2,
+                    2,
+                    raw_tp8_cache_col,
+                    formula,
+                    value,
+                    "bytes",
+                )
+                ws.write(row, 3, note, self.formats["text"])
+                local_memory_refs[("TP1", label)] = self._cell(
+                    ws.name, row, raw_tp1_cache_col
+                )
+                local_memory_refs[("TP8", label)] = self._cell(
+                    ws.name, row, raw_tp8_cache_col
+                )
+                self.memory_refs[("TP1", label)] = local_memory_refs[("TP1", label)]
+                self.memory_refs[("TP8", label)] = local_memory_refs[("TP8", label)]
+            ws.add_table(
+                cache_header,
+                0,
+                cache_header + len(cache_specs),
+                len(cache_headers) - 1,
+                {
+                    "name": f"{prefix}_Embedded_Cache",
+                    "style": "Table Style Medium 2",
+                    "columns": [{"header": header} for header in cache_headers],
+                },
+            )
+
+            rank_start = cache_header + len(cache_specs) + 3
+            ws.merge_range(
+                rank_start,
+                0,
+                rank_start,
+                9,
+                "单 Rank 设备驻留容量（默认均匀分片）",
+                self.formats["section"],
+            )
+            rank_header = rank_start + 1
+            rank_headers = [
+                "配置",
+                "Rank",
+                "注意力参数",
+                "混合专家参数",
+                "其他参数",
+                "参数总计",
+                "当前场景 KV+状态",
+                "总驻留",
+                "逻辑参数量",
+                "有效",
+            ]
+            ws.write_row(rank_header, 0, rank_headers, self.formats["header"])
+            rank_row = rank_header + 1
+            for label, p_config in (("TP1", self.p_tp1), ("TP8", self.p_tp8)):
+                ws.write(rank_row, 0, label, self.formats["text"])
+                ws.write(rank_row, 1, "任一 Rank", self.formats["text"])
+                category_refs = [
+                    local_memory_refs[(label, "Attention Parameter Capacity")],
+                    local_memory_refs[(label, "MoE Parameter Capacity")],
+                    local_memory_refs[(label, "Other Parameter Capacity")],
+                    local_memory_refs[(label, "Total Parameter Capacity")],
+                ]
+                category_values_for_rank = [
+                    category_values["Attention"][f"{label.lower()}_bytes"] / 1e9,
+                    category_values["MoE"][f"{label.lower()}_bytes"] / 1e9,
+                    category_values["Other"][f"{label.lower()}_bytes"] / 1e9,
+                    category_values["Total"][f"{label.lower()}_bytes"] / 1e9,
+                ]
+                for col, (ref, value) in enumerate(
+                    zip(category_refs, category_values_for_rank), start=2
+                ):
+                    ws.write_formula(
+                        rank_row,
+                        col,
+                        f"={ref}/1E9",
+                        self._unit_number_format("number", "GB"),
+                        value,
+                    )
+                cache_ref = local_memory_refs[(label, cache_specs[-1][0])]
+                cache_value = allocated_cache["total"] / 1e9
+                ws.write_formula(
+                    rank_row,
+                    6,
+                    f"={cache_ref}/1E9",
+                    self._unit_number_format("number", "GB"),
+                    cache_value,
+                )
+                ws.write_formula(
+                    rank_row,
+                    7,
+                    f"=F{rank_row + 1}+G{rank_row + 1}",
+                    self._unit_number_format("number", "GB"),
+                    category_values_for_rank[3] + cache_value,
+                )
+                count_ref = local_memory_refs[(label, "Total Parameter Count")]
+                ws.write_formula(
+                    rank_row,
+                    8,
+                    f"={count_ref}/1E9",
+                    self._unit_number_format("number", "G"),
+                    category_values["Total"][f"{label.lower()}_count"] / 1e9,
+                )
+                ws.write(rank_row, 9, f"{p_config.tp} 个 Rank 均相同", self.formats["text"])
+                rank_row += 1
+            ws.add_table(
+                rank_header,
+                0,
+                rank_row - 1,
+                len(rank_headers) - 1,
+                {
+                    "name": f"{prefix}_Embedded_Rank_Memory",
+                    "style": "Table Style Medium 4",
+                    "columns": [{"header": header} for header in rank_headers],
+                },
+            )
+            ws.set_column(32, raw_tp8_cache_col, None, None, {"hidden": True})
+            ws.set_column("A:A", 20)
+            ws.set_column("B:B", 34)
+            ws.set_column("C:C", 18)
+            ws.set_column("D:D", 44)
+            ws.set_column("E:G", 18)
+            ws.set_column("H:H", 58)
+            ws.set_column("I:J", 18)
+            self.scenario_next_rows[mode] = rank_row + 2
+        return memory
 
     def write_dtype(self) -> None:
+        dtype_rows = [
+            ("全局配置", "torch_dtype / 主干激活", "BF16", "BF16", "config.json 的 torch_dtype=bfloat16；隐藏状态与残差主路径使用 BF16。"),
+            ("全局配置", "普通量化线性层", "FP8 E4M3 + FP8 E8M0 缩放因子", "动态 FP8 激活量化", "quantization_config：quant_method=fp8，fmt=e4m3，scale_fmt=ue8m0。"),
+            ("所有层 0-42", "注意力主投影 wq_a/wq_b/wkv/wo_b", "FP8 E4M3 + FP8 E8M0 缩放因子", "FP8 GEMM；输入由 BF16 动态量化", "大多数注意力线性权重。"),
+            ("所有层 0-42", "注意力输出投影 wo_a", "BF16", "BF16 张量积（einsum）", "检查点中为 FP8，转换后在推理实现中按 BF16 使用。"),
+            ("所有层 0-42", "RMSNorm 权重与归一化", "权重 BF16；实现参数 FP32", "FP32 计算，输出回 BF16", "Norm 计算先转 FP32 以提高稳定性。"),
+            ("ratio-4 / ratio-128 层", "主 Compressor wkv/wgate/ape", "检查点主要为 BF16；实现参数 FP32", "FP32 压缩/softmax", "Compressor 参数在推理实现中提升到 FP32。"),
+            ("ratio-4 层", "Indexer 投影与评分", "wq_b FP8；weights_proj BF16", "QAT/FP4 模拟 QKV；评分 FP32", "仅 ratio-4 层启用 Indexer。"),
+            ("所有层 0-42", "路由专家 w1/w2/w3", "FP4 E2M1 打包 + FP8 E8M0 缩放因子", "FP4 GEMM；SwiGLU FP32；输出回 BF16", "专家数据类型为 fp4；每个令牌激活 6 个路由专家。"),
+            ("所有层 0-42", "共享专家 w1/w2/w3", "FP8 E4M3 + FP8 E8M0 缩放因子", "FP8 GEMM；SwiGLU FP32", "每层 1 个共享专家，跨 TP Rank 复制。"),
+            ("所有层 0-42", "Router 分数/路由权重", "偏置 FP32；哈希表 INT32", "FP32", "sqrt(softplus) 评分、Top-K 和归一化在 FP32 中完成。"),
+            ("第 0-2 层", "哈希路由表", "INT32", "INT32 索引", "前 3 层使用令牌编号到专家编号的预计算路由。"),
+            ("所有层 0-42", "mHC 参数 / 注意力 Sink", "FP32", "FP32", "HC 混合、Sinkhorn 与 Sink 参数使用 FP32。"),
+            ("所有层 0-42", "KV 缓存", "BF16", "BF16；部分非 RoPE 维度使用 FP8 模拟", "当前推理实现中的 KV 缓存为 BF16。"),
+            ("模型尾部", "最终归一化 / HC Head", "FP32 推理参数", "FP32 计算，输出回 BF16", "最终 HC 归约与 RMSNorm。"),
+            ("模型尾部", "LM Head / Logits", "checkpoint BF16；实现参数 FP32", "FP32 线性层与 Logits", "词表并行；Logits 以 FP32 计算。"),
+        ]
+        module_headers = ["适用范围", "模块/张量", "落盘/参数存储", "激活/中间计算", "说明"]
+        layer_headers = [
+            "层 ID",
+            "注意力模式",
+            "压缩比例",
+            "路由模式",
+            "隐藏状态 / 残差",
+            "注意力主投影",
+            "路由专家",
+            "共享专家",
+            "归一化 / HC / Router 计算",
+        ]
         ws = self.workbook.add_worksheet("dtype")
         ws.hide_gridlines(2)
         ws.freeze_panes(3, 0)
-        ws.write(0, 0, "DeepSeek V4 Flash DType Layout", self.formats["title"])
+        ws.write(0, 0, "推理路径数据类型（dtype）总表", self.formats["title"])
         ws.write(
             1,
             0,
-            "按当前 config.json 与 inference 实现整理；存储 dtype 与计算 dtype 分开列出。",
+            "集中记录各算子模块的参数存储、激活类型和逐层注意力/路由模式。",
             self.formats["note"],
         )
-        headers = [
-            "适用范围",
-            "模块/张量",
-            "落盘/参数存储",
-            "激活/中间计算",
-            "说明",
-        ]
-        ws.write_row(2, 0, headers, self.formats["header"])
-        dtype_rows = [
-            ("全局配置", "torch_dtype / 主干激活", "BF16", "BF16", "config.json 的 torch_dtype=bfloat16；隐藏状态与残差主路径使用 BF16。"),
-            ("全局配置", "普通量化线性层", "FP8 E4M3 + FP8 E8M0 scale", "动态 FP8 activation quant", "quantization_config: quant_method=fp8，fmt=e4m3，scale_fmt=ue8m0。"),
-            ("所有层 0-42", "Attention 主投影 wq_a/wq_b/wkv/wo_b", "FP8 E4M3 + FP8 E8M0 scale", "FP8 GEMM；输入由 BF16 动态量化", "大多数 Attention 线性权重。"),
-            ("所有层 0-42", "Attention 输出投影 wo_a", "BF16", "BF16 einsum", "checkpoint 中为 FP8，转换后在推理实现中按 BF16 使用。"),
-            ("所有层 0-42", "RMSNorm 权重与归一化", "权重 BF16；实现参数 FP32", "FP32 math，输出回 BF16", "Norm 计算先转 FP32 以提高稳定性。"),
-            ("ratio-4 / ratio-128 层", "Main Compressor wkv/wgate/ape", "checkpoint 主要为 BF16；实现参数 FP32", "FP32 compression / softmax", "Compressor 参数在推理实现中提升到 FP32。"),
-            ("ratio-4 层", "Indexer projections and score", "wq_b FP8；weights_proj BF16", "QAT/FP4-simulated QKV；score FP32", "仅 ratio-4 层启用 Indexer。"),
-            ("所有层 0-42", "Routed Experts w1/w2/w3", "FP4 E2M1 packed + FP8 E8M0 scale", "FP4 GEMM；SwiGLU FP32；输出回 BF16", "expert_dtype=fp4；每 token 激活 6 个 routed experts。"),
-            ("所有层 0-42", "Shared Expert w1/w2/w3", "FP8 E4M3 + FP8 E8M0 scale", "FP8 GEMM；SwiGLU FP32", "每层 1 个 shared expert，跨 TP rank 复制。"),
-            ("所有层 0-42", "Router scores / route weights", "bias FP32；hash table INT32", "FP32", "sqrt(softplus) 评分、top-k 和归一化在 FP32 中完成。"),
-            ("第 0-2 层", "Hash routing table", "INT32", "INT32 indexing", "前 3 层使用 token-ID 到 expert-ID 的预计算路由。"),
-            ("所有层 0-42", "mHC parameters / attention sink", "FP32", "FP32", "HC mixing、Sinkhorn 与 sink 参数使用 FP32。"),
-            ("所有层 0-42", "KV cache", "BF16", "BF16；部分非 RoPE 维度做 FP8 simulation", "当前 inference 实现中的 KV cache 为 BF16。"),
-            ("模型尾部", "Final norm / HC head", "FP32 inference parameters", "FP32 math，输出回 BF16", "最终 HC reduction 与 RMSNorm。"),
-            ("模型尾部", "LM head / logits", "checkpoint BF16；实现参数 FP32", "FP32 linear 与 logits", "词表并行；logits 以 FP32 计算。"),
-        ]
-        for row, values in enumerate(dtype_rows, start=3):
-            ws.write_row(row, 0, values, self.formats["text"])
-        dtype_last_row = 2 + len(dtype_rows)
-        ws.add_table(
-            2,
+
+        module_section = 3
+        ws.merge_range(
+            module_section,
             0,
-            dtype_last_row,
-            len(headers) - 1,
+            module_section,
+            4,
+            "数据类型（dtype）：模块级存储与计算类型",
+            self.formats["section"],
+        )
+        module_header = module_section + 1
+        module_first_row = module_header + 1
+        module_last_row = module_first_row + len(dtype_rows) - 1
+        ws.write_row(module_header, 0, module_headers, self.formats["header"])
+        for offset, values in enumerate(dtype_rows):
+            ws.write_row(module_first_row + offset, 0, values, self.formats["text"])
+        ws.add_table(
+            module_header,
+            0,
+            module_last_row,
+            len(module_headers) - 1,
             {
-                "name": "DType_Module_Layout",
+                "name": "DType_Module",
                 "style": "Table Style Medium 2",
-                "columns": [{"header": header} for header in headers],
+                "columns": [{"header": header} for header in module_headers],
             },
         )
 
-        section_row = dtype_last_row + 2
+        layer_section = module_last_row + 2
         ws.merge_range(
-            section_row,
+            layer_section,
             0,
-            section_row,
+            layer_section,
             8,
-            "43 层逐层 dtype 与 Attention / Router 模式",
+            "43 层逐层 dtype、注意力与路由模式",
             self.formats["section"],
         )
-        layer_header = section_row + 1
-        layer_headers = [
-            "Layer ID",
-            "Attention 模式",
-            "压缩比例",
-            "Router 模式",
-            "Hidden / residual",
-            "Attention 主投影",
-            "Routed Expert",
-            "Shared Expert",
-            "Norm / HC / Router math",
-        ]
+        layer_header = layer_section + 1
+        layer_first_row = layer_header + 1
+        layer_last_row = layer_first_row + self.layers.total - 1
         ws.write_row(layer_header, 0, layer_headers, self.formats["header"])
         for layer_id, ratio in enumerate(self.ratios[: self.layers.total]):
             if ratio == 0:
-                attention_mode = "Window"
+                attention_mode = "窗口"
             elif ratio == self.p.short_ratio:
-                attention_mode = "Short compressed sparse"
+                attention_mode = "短压缩稀疏"
             elif ratio == self.p.long_ratio:
-                attention_mode = "Long compressed"
+                attention_mode = "长压缩"
             else:
-                attention_mode = "Custom ratio"
+                attention_mode = "自定义比例"
             router_mode = (
-                "Hash routing (INT32)"
+                "哈希路由（INT32）"
                 if layer_id < self.p.hash_layers
-                else "Score routing (FP32)"
+                else "评分路由（FP32）"
             )
             ws.write_row(
-                layer_header + 1 + layer_id,
+                layer_first_row + layer_id,
                 0,
                 [
                     layer_id,
@@ -2770,14 +2751,13 @@ class InferenceComparisonWriter(CalculatorWriter):
                 ],
                 self.formats["text"],
             )
-        layer_last_row = layer_header + self.layers.total
         ws.add_table(
             layer_header,
             0,
             layer_last_row,
             len(layer_headers) - 1,
             {
-                "name": "DType_Layer_Layout",
+                "name": "DType_Layer",
                 "style": "Table Style Medium 4",
                 "columns": [{"header": header} for header in layer_headers],
             },
@@ -2787,446 +2767,9 @@ class InferenceComparisonWriter(CalculatorWriter):
         ws.set_column("C:C", 20)
         ws.set_column("D:D", 28)
         ws.set_column("E:I", 24)
-        ws.set_column("J:J", 2)
 
-    def write_summary(self, memory: dict[str, float]) -> None:
-        sheet = "Summary"
-        ws = self.workbook.add_worksheet(sheet)
-        ws.activate()
-        ws.hide_gridlines(2)
-        ws.freeze_panes(4, 1)
-        ws.write(0, 0, "每 Rank 推理硬件资源汇总", self.formats["title"])
-        ws.write(1, 0, "面向 TP1 / TP8 硬件选型：计算量、HBM 流量、参数量、参数容量与 KV Cache。", self.formats["note"])
-        headers = [
-            "资源项目",
-            "Prefill TP1",
-            "单位",
-            "Prefill TP8/rank",
-            "单位",
-            "Decode TP1",
-            "单位",
-            "Decode TP8/rank",
-            "单位",
-            "说明",
-        ]
-        ws.write_row(3, 0, headers, self.formats["header"])
-        raw_cols = (10, 11, 12, 13)
-
-        def scenario_ref(prefix: str, tp: str, label: str) -> str:
-            return self.scenario_refs[(prefix, tp, label)]
-
-        def memory_ref(tp: str, label: str) -> str:
-            return self.memory_refs[(tp, label)]
-
-        rows: list[tuple[str, tuple[str, float], tuple[str, float], tuple[str, float], tuple[str, float], str, str]] = []
-        tp1_pf, _ = self._scenario_inputs("prefill")[:2]
-        tp1_dc, _ = self._scenario_inputs("decode")[:2]
-        pf1 = summarize_items(tp1_pf)
-        pf8 = summarize_items(self._scenario_inputs("prefill")[1])
-        dc1 = summarize_items(tp1_dc)
-        dc8 = summarize_items(self._scenario_inputs("decode")[1])
-
-        def category_hbm(summary: dict[str, Any], category: str) -> float:
-            data = summary["categories"][category]
-            return data["hbm_read_bytes_per_rank"] + data["hbm_write_bytes_per_rank"]
-
-        for label, source_label, category in (
-            ("Attention 计算量", "Attention major FLOPs", "Attention"),
-            ("MoE 计算量", "MoE major FLOPs", "MoE"),
-            ("Other 推理计算量", "Other inference FLOPs", "Other"),
-            ("总推理计算量", "Total inference FLOPs", "Total"),
-        ):
-            if category == "Attention":
-                values = (pf1["attention_major_flops_per_rank"], pf8["attention_major_flops_per_rank"], dc1["attention_major_flops_per_rank"], dc8["attention_major_flops_per_rank"])
-            elif category == "MoE":
-                values = (pf1["moe_major_flops_per_rank"], pf8["moe_major_flops_per_rank"], dc1["moe_major_flops_per_rank"], dc8["moe_major_flops_per_rank"])
-            elif category == "Other":
-                values = tuple(summary["categories"]["Other"]["per_rank_flops"] for summary in (pf1, pf8, dc1, dc8))
-            else:
-                values = tuple(summary["total_per_rank_flops"] for summary in (pf1, pf8, dc1, dc8))
-            rows.append((label, (scenario_ref("PF", "TP1", source_label), values[0]), (scenario_ref("PF", "TP8", source_label), values[1]), (scenario_ref("DC", "TP1", source_label), values[2]), (scenario_ref("DC", "TP8", source_label), values[3]), "flops", "单次 Prefill 或 Decode step 的每 Rank 逻辑 FLOPs。"))
-
-        for label, source_label, category in (
-            ("Attention HBM 流量", "Attention HBM traffic", "Attention"),
-            ("MoE HBM 流量", "MoE HBM traffic", "MoE"),
-            ("Other HBM 流量", "Other HBM traffic", "Other"),
-            ("总 HBM 流量", "Total HBM traffic", "Total"),
-        ):
-            values = (
-                category_hbm(pf1, category) if category != "Total" else pf1["total_hbm_read_bytes_per_rank"] + pf1["total_hbm_write_bytes_per_rank"],
-                category_hbm(pf8, category) if category != "Total" else pf8["total_hbm_read_bytes_per_rank"] + pf8["total_hbm_write_bytes_per_rank"],
-                category_hbm(dc1, category) if category != "Total" else dc1["total_hbm_read_bytes_per_rank"] + dc1["total_hbm_write_bytes_per_rank"],
-                category_hbm(dc8, category) if category != "Total" else dc8["total_hbm_read_bytes_per_rank"] + dc8["total_hbm_write_bytes_per_rank"],
-            )
-            rows.append((label, (scenario_ref("PF", "TP1", source_label), values[0]), (scenario_ref("PF", "TP8", source_label), values[1]), (scenario_ref("DC", "TP1", source_label), values[2]), (scenario_ref("DC", "TP8", source_label), values[3]), "bytes", "本地逻辑 HBM 读写量，不含缓存复用和算子融合。"))
-
-        for label, source_label, category in (
-            ("Attention 所需 HBM 带宽", "Attention HBM traffic", "Attention"),
-            ("MoE 所需 HBM 带宽", "MoE HBM traffic", "MoE"),
-            ("Other 所需 HBM 带宽", "Other HBM traffic", "Other"),
-        ):
-            pf_values = (
-                category_hbm(pf1, category) / (self.p.prefill_target_ms / 1000) / 1e9,
-                category_hbm(pf8, category) / (self.p.prefill_target_ms / 1000) / 1e9,
-            )
-            dc_values = (
-                category_hbm(dc1, category) / (self.p.decode_target_ms / 1000) / 1e9,
-                category_hbm(dc8, category) / (self.p.decode_target_ms / 1000) / 1e9,
-            )
-            rows.append(
-                (
-                    label,
-                    (f"{scenario_ref('PF', 'TP1', source_label)}/(PrefillTargetMs/1000)/1E9", pf_values[0]),
-                    (f"{scenario_ref('PF', 'TP8', source_label)}/(PrefillTargetMs/1000)/1E9", pf_values[1]),
-                    (f"{scenario_ref('DC', 'TP1', source_label)}/(DecodeTargetMs/1000)/1E9", dc_values[0]),
-                    (f"{scenario_ref('DC', 'TP8', source_label)}/(DecodeTargetMs/1000)/1E9", dc_values[1]),
-                    "GB/s",
-                    "按 Parameters 中目标时延换算；是静态需求值，不是实测带宽。",
-                )
-            )
-
-        pf_required_compute = (
-            pf1["total_per_rank_flops"] / (self.p.prefill_target_ms / 1000) / 1e12,
-            pf8["total_per_rank_flops"] / (self.p.prefill_target_ms / 1000) / 1e12,
-        )
-        dc_required_compute = (
-            dc1["total_per_rank_flops"] / (self.p.decode_target_ms / 1000) / 1e12,
-            dc8["total_per_rank_flops"] / (self.p.decode_target_ms / 1000) / 1e12,
-        )
-        rows.append(
-            (
-                "目标时延所需计算性能",
-                (scenario_ref("PF", "TP1", "Required compute at target"), pf_required_compute[0]),
-                (scenario_ref("PF", "TP8", "Required compute at target"), pf_required_compute[1]),
-                (scenario_ref("DC", "TP1", "Required compute at target"), dc_required_compute[0]),
-                (scenario_ref("DC", "TP8", "Required compute at target"), dc_required_compute[1]),
-                "TFLOP/s",
-                "按目标时延折算的每 Rank 最低计算吞吐需求。",
-            )
-        )
-        interconnect_values = (
-            pf1["total_interconnect_bytes_per_rank"],
-            pf8["total_interconnect_bytes_per_rank"],
-            dc1["total_interconnect_bytes_per_rank"],
-            dc8["total_interconnect_bytes_per_rank"],
-        )
-        rows.append(
-            (
-                "卡间互连传输量",
-                (scenario_ref("PF", "TP1", "Interconnect transfer"), interconnect_values[0]),
-                (scenario_ref("PF", "TP8", "Interconnect transfer"), interconnect_values[1]),
-                (scenario_ref("DC", "TP1", "Interconnect transfer"), interconnect_values[2]),
-                (scenario_ref("DC", "TP8", "Interconnect transfer"), interconnect_values[3]),
-                "bytes",
-                "Ring 集合通信每 Rank 发送加接收；TP1 为 0。",
-            )
-        )
-        interconnect_bandwidth = (
-            interconnect_values[0] / (self.p.prefill_target_ms / 1000) / 1e9,
-            interconnect_values[1] / (self.p.prefill_target_ms / 1000) / 1e9,
-            interconnect_values[2] / (self.p.decode_target_ms / 1000) / 1e9,
-            interconnect_values[3] / (self.p.decode_target_ms / 1000) / 1e9,
-        )
-        rows.append(
-            (
-                "目标时延所需互连带宽",
-                (f"{scenario_ref('PF', 'TP1', 'Interconnect transfer')}/(PrefillTargetMs/1000)/1E9", interconnect_bandwidth[0]),
-                (f"{scenario_ref('PF', 'TP8', 'Interconnect transfer')}/(PrefillTargetMs/1000)/1E9", interconnect_bandwidth[1]),
-                (f"{scenario_ref('DC', 'TP1', 'Interconnect transfer')}/(DecodeTargetMs/1000)/1E9", interconnect_bandwidth[2]),
-                (f"{scenario_ref('DC', 'TP8', 'Interconnect transfer')}/(DecodeTargetMs/1000)/1E9", interconnect_bandwidth[3]),
-                "GB/s",
-                "未考虑通信与计算重叠、拓扑和协议效率。",
-            )
-        )
-
-        for label, memory_label, kind, note in (
-            ("Attention 逻辑参数量", "Attention Parameter Count", "params", "Attention 投影、Compressor、Indexer。"),
-            ("MoE 逻辑参数量", "MoE Parameter Count", "params", "Routed/Shared Expert 与 Router。"),
-            ("Other 逻辑参数量", "Other Parameter Count", "params", "Embedding、LM Head、HC 与 Norm。"),
-            ("总逻辑参数量", "Total Parameter Count", "params", "不包含 MTP。"),
-            ("Attention 参数容量", "Attention Parameter Capacity", "bytes", "按推理 dtype 与量化 scale 计算。"),
-            ("MoE 参数容量", "MoE Parameter Capacity", "bytes", "Routed FP4、Shared FP8、Router 复制。"),
-            ("Other 参数容量", "Other Parameter Capacity", "bytes", "Embedding/LM Head/HC/Norm。"),
-            ("总参数容量", "Total Parameter Capacity", "bytes", "每 Rank 静态参数驻留。"),
-        ):
-            tp1_ref = memory_ref("TP1", memory_label)
-            tp8_ref = memory_ref("TP8", memory_label)
-            tp1_key = "tp1_count" if kind == "params" else "tp1_bytes"
-            tp8_key = "tp8_count" if kind == "params" else "tp8_bytes"
-            category = memory_label.split()[0]
-            if category not in {"Attention", "MoE", "Other"}:
-                category = "Total"
-            tp1_value = parameter_components(self.p_tp1, self.layers)
-            tp8_value = parameter_components(self.p_tp8, self.layers)
-            selected1 = tp1_value if category == "Total" else [c for c in tp1_value if c.category == category]
-            selected8 = tp8_value if category == "Total" else [c for c in tp8_value if c.category == category]
-            value1 = sum(c.rank_count if kind == "params" else c.rank_bytes for c in selected1)
-            value8 = sum(c.rank_count if kind == "params" else c.rank_bytes for c in selected8)
-            rows.append((label, (tp1_ref, value1), (tp8_ref, value8), (tp1_ref, value1), (tp8_ref, value8), kind, note))
-
-        kv_rows = (
-            ("有效主 KV Cache", "Prefill effective main KV", "Decode effective main KV"),
-            ("有效 Indexer KV Cache", "Prefill effective Indexer KV", "Decode effective Indexer KV"),
-            ("Compressor State", "Prefill compressor states", "Decode compressor states"),
-            ("预分配 KV + State", "Prefill preallocated KV + states", "Decode preallocated KV + states"),
-        )
-        for label, pf_label, dc_label in kv_rows:
-            pf_value = (
-                self.p.prefill_batch
-                and cache_values(self.p, self.layers, self.p.prefill_sequence, self.p.prefill_batch)
-            )
-            dc_value = cache_values(self.p, self.layers, self.p.decode_context, self.p.decode_batch)
-            if "main" in pf_label:
-                pf_number, dc_number = pf_value["main"], dc_value["main"]
-            elif "Indexer" in pf_label:
-                pf_number, dc_number = pf_value["indexer"], dc_value["indexer"]
-            elif "compressor" in pf_label:
-                pf_number, dc_number = pf_value["states"], dc_value["states"]
-            else:
-                pf_number = cache_values(self.p, self.layers, self.p.max_context, self.p.prefill_batch)["total"]
-                dc_number = cache_values(self.p, self.layers, self.p.max_context, self.p.decode_batch)["total"]
-            rows.append((label, (memory_ref("TP1", pf_label), pf_number), (memory_ref("TP8", pf_label), pf_number), (memory_ref("TP1", dc_label), dc_number), (memory_ref("TP8", dc_label), dc_number), "bytes", "当前实现中 KV 与 Compressor State 在 TP Rank 间复制。"))
-
-        parameter_tp1 = memory["tp1_parameter_total"]
-        parameter_tp8 = memory["tp8_parameter_total"]
-        pf_alloc = memory["prefill_allocated_cache"]
-        dc_alloc = memory["decode_allocated_cache"]
-        rows.append(("总驻留容量", (f"{memory_ref('TP1', 'Total Parameter Capacity')}+{memory_ref('TP1', 'Prefill preallocated KV + states')}", parameter_tp1 + pf_alloc), (f"{memory_ref('TP8', 'Total Parameter Capacity')}+{memory_ref('TP8', 'Prefill preallocated KV + states')}", parameter_tp8 + pf_alloc), (f"{memory_ref('TP1', 'Total Parameter Capacity')}+{memory_ref('TP1', 'Decode preallocated KV + states')}", parameter_tp1 + dc_alloc), (f"{memory_ref('TP8', 'Total Parameter Capacity')}+{memory_ref('TP8', 'Decode preallocated KV + states')}", parameter_tp8 + dc_alloc), "bytes", "参数 + 按 MaxContext 预分配的 KV/State；不含临时 workspace。"))
-
-        for offset, (label, pf1_spec, pf8_spec, dc1_spec, dc8_spec, kind, note) in enumerate(rows):
-            row = 4 + offset
-            ws.write(row, 0, label, self.formats["total" if label in {"总推理计算量", "总 HBM 流量", "总参数容量", "总驻留容量"} else "text"])
-            for pair_index, (formula_ref, value) in enumerate((pf1_spec, pf8_spec, dc1_spec, dc8_spec)):
-                raw_col = raw_cols[pair_index]
-                formula = formula_ref if formula_ref.startswith("=") else f"={formula_ref}"
-                value_col = 1 + pair_index * 2
-                unit_col = value_col + 1
-                self._write_human_value(ws, row, value_col, unit_col, raw_col, formula, value, kind, label.startswith("总"))
-            ws.write(row, 9, note, self.formats["text"])
-
-        ws.set_column(raw_cols[0], raw_cols[-1], None, None, {"hidden": True})
-        ws.set_column("A:A", 29)
-        ws.set_column("B:I", 17)
-        ws.set_column("J:J", 62)
-
-    def write_comparison(self, memory: dict[str, float]) -> None:
-        ws = self.workbook.add_worksheet("Comparison")
-        ws.hide_gridlines(2)
-        ws.write(0, 0, "TP1 / TP8 推理资源对比图", self.formats["title"])
-        ws.write(1, 0, "数量单位直接显示在数值单元格中；图表数据保留为数值，不显示科学计数法。", self.formats["note"])
-        pf1 = summarize_items(self._scenario_inputs("prefill")[0])
-        pf8 = summarize_items(self._scenario_inputs("prefill")[1])
-        dc1 = summarize_items(self._scenario_inputs("decode")[0])
-        dc8 = summarize_items(self._scenario_inputs("decode")[1])
-
-        def category_value(summary: dict[str, Any], category: str, metric: str) -> float:
-            if metric == "flops":
-                if category == "Attention":
-                    return summary["attention_major_flops_per_rank"]
-                if category == "MoE":
-                    return summary["moe_major_flops_per_rank"]
-                return summary["categories"]["Other"]["per_rank_flops"]
-            data = summary["categories"][category]
-            return data["hbm_read_bytes_per_rank"] + data["hbm_write_bytes_per_rank"]
-
-        ws.write_row(3, 0, ["大类", "Prefill TP1", "Prefill TP8", "Decode TP1", "Decode TP8"], self.formats["header"])
-        for offset, category in enumerate(("Attention", "MoE", "Other")):
-            row = 4 + offset
-            ws.write(row, 0, category, self.formats["text"])
-            values = (
-                category_value(pf1, category, "flops") / 1e12,
-                category_value(pf8, category, "flops") / 1e12,
-                category_value(dc1, category, "flops") / 1e9,
-                category_value(dc8, category, "flops") / 1e9,
-            )
-            refs = (
-                self.scenario_refs[("PF", "TP1", f"{category if category != 'Other' else 'Other inference'} {'major FLOPs' if category != 'Other' else 'FLOPs'}")],
-                self.scenario_refs[("PF", "TP8", f"{category if category != 'Other' else 'Other inference'} {'major FLOPs' if category != 'Other' else 'FLOPs'}")],
-                self.scenario_refs[("DC", "TP1", f"{category if category != 'Other' else 'Other inference'} {'major FLOPs' if category != 'Other' else 'FLOPs'}")],
-                self.scenario_refs[("DC", "TP8", f"{category if category != 'Other' else 'Other inference'} {'major FLOPs' if category != 'Other' else 'FLOPs'}")],
-            )
-            divisors = (1e12, 1e12, 1e9, 1e9)
-            for col, (ref, divisor, value) in enumerate(zip(refs, divisors, values), start=1):
-                unit = "TFLOPs" if col < 3 else "GFLOPs"
-                ws.write_formula(row, col, f"={ref}/{divisor:g}", self._unit_number_format("number", unit), value)
-
-        ws.write_row(9, 0, ["大类", "Prefill TP1", "Prefill TP8", "Decode TP1", "Decode TP8"], self.formats["header"])
-        for offset, category in enumerate(("Attention", "MoE", "Other")):
-            row = 10 + offset
-            ws.write(row, 0, category, self.formats["text"])
-            source_label = f"{category} HBM traffic"
-            values = tuple(category_value(summary, category, "hbm") / 1e9 for summary in (pf1, pf8, dc1, dc8))
-            refs = (
-                self.scenario_refs[("PF", "TP1", source_label)],
-                self.scenario_refs[("PF", "TP8", source_label)],
-                self.scenario_refs[("DC", "TP1", source_label)],
-                self.scenario_refs[("DC", "TP8", source_label)],
-            )
-            for col, (ref, value) in enumerate(zip(refs, values), start=1):
-                ws.write_formula(row, col, f"={ref}/1E9", self._unit_number_format("number", "GB"), value)
-
-        ws.write_row(
-            15,
-            0,
-            [
-                "静态参数大类（Prefill/Decode 共用）",
-                "TP1 单 Rank",
-                "TP8 单 Rank",
-            ],
-            self.formats["header"],
-        )
-        for offset, category in enumerate(("Attention", "MoE", "Other")):
-            row = 16 + offset
-            ws.write(row, 0, category, self.formats["text"])
-            for col, label in ((1, "TP1"), (2, "TP8")):
-                ref = self.memory_refs[(label, f"{category} Parameter Capacity")]
-                value = memory[f"{label.lower()}_{category.lower()}_parameter"] / 1e9
-                ws.write_formula(row, col, f"={ref}/1E9", self._unit_number_format("number", "GB"), value)
-
-        ws.write(
-            19,
-            0,
-            "说明：参数容量只由模型结构、dtype 和 TP 分片决定，与 Prefill/Decode 场景无关；两列分别是单 Rank 值，不相加。",
-            self.formats["note"],
-        )
-        ws.write_row(
-            21,
-            0,
-            ["单 Rank 容量项", "TP1 单 Rank", "TP8 单 Rank"],
-            self.formats["header"],
-        )
-        capacity_rows = (
-            (
-                "静态参数（场景共用）",
-                memory["tp1_parameter_total"],
-                memory["tp8_parameter_total"],
-                "parameter",
-            ),
-            (
-                "预分配 KV+State（Prefill/Decode 当前相同）",
-                memory["prefill_allocated_cache"],
-                memory["prefill_allocated_cache"],
-                "prefill_kv",
-            ),
-            (
-                "总驻留（静态参数+KV+State）",
-                memory["tp1_parameter_total"] + memory["prefill_allocated_cache"],
-                memory["tp8_parameter_total"] + memory["prefill_allocated_cache"],
-                "prefill_total",
-            ),
-        )
-        for offset, (label, value1, value8, value_type) in enumerate(capacity_rows):
-            row = 22 + offset
-            ws.write(row, 0, label, self.formats["text"])
-            parameter1 = self.memory_refs[("TP1", "Total Parameter Capacity")]
-            parameter8 = self.memory_refs[("TP8", "Total Parameter Capacity")]
-            prefill_kv1 = self.memory_refs[("TP1", "Prefill preallocated KV + states")]
-            prefill_kv8 = self.memory_refs[("TP8", "Prefill preallocated KV + states")]
-            decode_kv1 = self.memory_refs[("TP1", "Decode preallocated KV + states")]
-            decode_kv8 = self.memory_refs[("TP8", "Decode preallocated KV + states")]
-            if value_type == "parameter":
-                formula1, formula8 = parameter1, parameter8
-            elif value_type == "prefill_kv":
-                formula1, formula8 = prefill_kv1, prefill_kv8
-            elif value_type == "prefill_total":
-                formula1 = f"{parameter1}+{prefill_kv1}"
-                formula8 = f"{parameter8}+{prefill_kv8}"
-            elif value_type == "decode_kv":
-                formula1, formula8 = decode_kv1, decode_kv8
-            else:
-                formula1 = f"{parameter1}+{decode_kv1}"
-                formula8 = f"{parameter8}+{decode_kv8}"
-            ws.write_formula(row, 1, f"=({formula1})/1E9", self._unit_number_format("number", "GB"), value1 / 1e9)
-            ws.write_formula(row, 2, f"=({formula8})/1E9", self._unit_number_format("number", "GB"), value8 / 1e9)
-
-        ws.write_row(
-            29,
-            0,
-            ["算力需求场景", "所需"],
-            self.formats["header"],
-        )
-        compute_requirements = (
-            (
-                "Prefill TP1/rank",
-                self.scenario_refs[("PF", "TP1", "Total inference FLOPs")],
-                pf1["total_per_rank_flops"],
-            ),
-            (
-                "Prefill TP8/rank",
-                self.scenario_refs[("PF", "TP8", "Total inference FLOPs")],
-                pf8["total_per_rank_flops"],
-            ),
-            (
-                "Decode TP1/rank",
-                self.scenario_refs[("DC", "TP1", "Total inference FLOPs")],
-                dc1["total_per_rank_flops"],
-            ),
-            (
-                "Decode TP8/rank",
-                self.scenario_refs[("DC", "TP8", "Total inference FLOPs")],
-                dc8["total_per_rank_flops"],
-            ),
-        )
-        compute_raw_col = 7
-        for offset, (label, reference, value) in enumerate(compute_requirements):
-            row = 30 + offset
-            ws.write(row, 0, label, self.formats["text"])
-            self._write_human_value(
-                ws,
-                row,
-                1,
-                1,
-                compute_raw_col,
-                f"={reference}",
-                value,
-                "flops",
-            )
-        ws.set_column(compute_raw_col, compute_raw_col, None, None, {"hidden": True})
-
-        def add_chart(title: str, anchor: str, categories: tuple[int, int], series: list[tuple[str, int]], y_name: str) -> None:
-            chart = self.workbook.add_chart({"type": "column"})
-            for name, column in series:
-                chart.add_series({
-                    "name": name,
-                    "categories": ["Comparison", categories[0], 0, categories[1], 0],
-                    "values": ["Comparison", categories[0], column, categories[1], column],
-                    "data_labels": {"value": True, "num_format": "0.0"},
-                })
-                chart.show_hidden_data()
-            chart.set_title({"name": title})
-            chart.set_y_axis({"name": y_name, "num_format": "0.0", "major_gridlines": {"visible": True}})
-            chart.set_x_axis({"label_position": "low"})
-            chart.set_legend({"position": "bottom"})
-            chart.set_style(10)
-            ws.insert_chart(anchor, chart, {"x_scale": 1.28, "y_scale": 1.15})
-
-        add_chart(
-            "一次推理所需总计算量/单 Rank",
-            "A36",
-            (30, 33),
-            [("单次推理 FLOPs", compute_raw_col)],
-            "FLOPs",
-        )
-        add_chart("Prefill 每 Rank 计算量", "A53", (4, 6), [("TP1", 1), ("TP8", 2)], "TFLOPs")
-        add_chart("Decode 每 Rank 计算量", "J53", (4, 6), [("TP1", 3), ("TP8", 4)], "GFLOPs")
-        add_chart("Prefill 每 Rank HBM 流量", "A70", (10, 12), [("TP1", 1), ("TP8", 2)], "GB")
-        add_chart("Decode 每 Rank HBM 流量", "J70", (10, 12), [("TP1", 3), ("TP8", 4)], "GB")
-        add_chart(
-            "静态参数容量/单 Rank（Prefill/Decode 共用）",
-            "A87",
-            (16, 18),
-            [("TP1 单 Rank", 1), ("TP8 单 Rank", 2)],
-            "GB",
-        )
-        add_chart(
-            "TP1 vs TP8：单 Rank 推理驻留容量",
-            "J87",
-            (22, 24),
-            [("TP1 单 Rank", 1), ("TP8 单 Rank", 2)],
-            "GB",
-        )
-        ws.set_column("A:A", 25)
-        ws.set_column("B:E", 20)
+    def write_memory(self) -> dict[str, float]:
+        return self.write_embedded_memory()
 
     def write_methodology(self) -> None:
         ws = self.workbook.add_worksheet("Methodology")
@@ -3234,17 +2777,17 @@ class InferenceComparisonWriter(CalculatorWriter):
         ws.write(0, 0, "方法与统计边界", self.formats["title"])
         rows = [
             ("统计范围", "仅统计 43 层主推理路径；不含 MTP、反向传播、梯度、优化器状态和训练激活。Layer_Config 最多可维护 64 层。"),
-            ("计算量", "矩阵乘加按 2 FLOPs 计。Attention 与 MoE 主要 GEMM 使用显式公式；HC 与逐元素运算为近似估计。"),
-            ("Prefill Attention", "使用因果候选对数量，不直接使用 S×S；Raw Window、Compressed KV 和 Indexer 扫描分别统计。"),
-            ("Decode Attention", "每个 DecodeTokens 在 DecodeContext 下建模；ratio-4 主 Attention 取 Top-K，但 Indexer 需要扫描全部已完成压缩项。"),
-            ("MoE", "每 Token 执行 Top-K Routed Experts 和 Shared Experts。HBM 参数读取按专家至少被命中一次的概率估计。"),
+            ("计算量", "矩阵乘加按 2 FLOPs 计。注意力与 MoE 主要 GEMM 使用显式公式；HC 与逐元素运算为近似估计。"),
+            ("预填充注意力", "使用因果候选对数量，不直接使用 S×S；原始窗口、压缩 KV 和 Indexer 扫描分别统计。"),
+            ("解码注意力", "每个解码令牌在解码上下文长度下建模；ratio-4 主注意力取 Top-K，但 Indexer 需要扫描全部已完成压缩项。"),
+            ("混合专家", "每个令牌执行 Top-K 路由专家和共享专家。HBM 参数读取按专家至少被命中一次的概率估计。"),
             ("HBM 流量", "统计本地逻辑参数、激活和 KV 的读取与写入；不模拟 L2 命中、算子融合、分块、Allocator 或厂商 Kernel 内部复用。"),
-            ("参数容量", "按推理运行 dtype 估算：Routed Expert FP4、多数投影 FP8、Wo_a BF16、Compressor FP32、LM Head FP32，并计入量化 Scale。"),
-            ("KV Cache", "有效容量表示已填充项；预分配容量使用 MaxContext。当前实现的 KV 和 Compressor State 在每个 TP Rank 上完整复制。"),
-            ("TP 分片", "Wq_a、Wkv、Compressor、Router、HC、Shared Expert 复制；Q/O 部分投影、Routed Experts、Embedding 和 LM Head 按 TP 分片。"),
+            ("参数容量", "按推理运行 dtype 估算：路由专家 FP4、多数投影 FP8、Wo_a BF16、Compressor FP32、LM Head FP32，并计入量化 Scale。"),
+            ("KV 缓存", "有效容量表示已填充项；预分配容量使用 MaxContext。当前实现的 KV 和 Compressor 状态在每个 TP Rank 上完整复制。"),
+            ("TP 分片", "Wq_a、Wkv、Compressor、Router、HC、共享专家复制；Q/O 部分投影、路由专家、Embedding 和 LM Head 按 TP 分片。"),
             ("卡间通信", "Ring 公式给出每 Rank 发送加接收的数据量。TP1 为 0；该数值是传输量，不是实测 GB/s 或时延。"),
-            ("硬件下界", "计算/HBM/互连下界使用 Parameters 中可编辑硬件峰值并假设互不重叠；真实运行时间必须通过 Profiling 验证。"),
-            ("单位", "FLOPs 使用 M/G/T/P 十进制单位；容量与流量使用 KB/MB/GB/TB，1 GB=10^9 Bytes；Memory 明细保留原始公式。"),
+            ("硬件下界", "计算/HBM/互连下界使用参数页中的可编辑硬件峰值并假设互不重叠；真实运行时间必须通过性能分析验证。"),
+            ("单位", "FLOPs 使用 M/G/T/P 十进制单位；容量与流量使用 KB/MB/GB/TB，1 GB=10^9 字节；场景页容量明细保留原始公式。"),
             ("公式维护", "蓝色单元格为输入；结果由 Excel 公式计算并在打开时完整重算。隐藏列保留原始未缩放值，便于审计。"),
         ]
         ws.write_row(2, 0, ["主题", "定义"], self.formats["header"])
@@ -3253,6 +2796,699 @@ class InferenceComparisonWriter(CalculatorWriter):
             ws.write(row, 1, definition, self.formats["text"])
         ws.set_column("A:A", 24)
         ws.set_column("B:B", 120)
+
+    def write_comparison(self, memory: dict[str, float]) -> None:
+        ws = self.workbook.add_worksheet("Comparison")
+        ws.hide_gridlines(2)
+        ws.write(0, 0, "TP1 / TP8 推理资源对比图", self.formats["title"])
+        ws.write(
+            1,
+            0,
+            "计算量、HBM、参数、缓存与驻留容量集中在一张资源表；隐藏列保留公式原值和图表缩放源。",
+            self.formats["note"],
+        )
+
+        pf1_items, pf8_items, _ = self._scenario_inputs("prefill")
+        dc1_items, dc8_items, _ = self._scenario_inputs("decode")
+        pf1 = summarize_items(pf1_items)
+        pf8 = summarize_items(pf8_items)
+        dc1 = summarize_items(dc1_items)
+        dc8 = summarize_items(dc8_items)
+
+        def scenario_ref(prefix: str, tp: str, label: str) -> str:
+            return self.scenario_refs[(prefix, tp, label)]
+
+        def memory_ref(tp: str, label: str) -> str:
+            return self.memory_refs[(tp, label)]
+
+        def category_hbm(summary: dict[str, Any], category: str) -> float:
+            values = summary["categories"][category]
+            return values["hbm_read_bytes_per_rank"] + values["hbm_write_bytes_per_rank"]
+
+        def parameter_value(tp: str, category: str, kind: str) -> float:
+            parameters = parameter_components(
+                self.p_tp1 if tp == "TP1" else self.p_tp8,
+                self.layers,
+            )
+            if category != "Total":
+                parameters = [
+                    parameter
+                    for parameter in parameters
+                    if parameter.category == category
+                ]
+            return sum(
+                parameter.rank_count if kind == "params" else parameter.rank_bytes
+                for parameter in parameters
+            )
+
+        cache_values_by_mode = {
+            "prefill": (
+                cache_values(
+                    self.p,
+                    self.layers,
+                    self.p.prefill_sequence,
+                    self.p.prefill_batch,
+                ),
+                cache_values(
+                    self.p,
+                    self.layers,
+                    self.p.max_context,
+                    self.p.prefill_batch,
+                )["total"],
+            ),
+            "decode": (
+                cache_values(
+                    self.p,
+                    self.layers,
+                    self.p.decode_context,
+                    self.p.decode_batch,
+                ),
+                cache_values(
+                    self.p,
+                    self.layers,
+                    self.p.max_context,
+                    self.p.decode_batch,
+                )["total"],
+            ),
+        }
+
+        def cache_number(label: str, mode: str) -> float:
+            effective, allocated = cache_values_by_mode[mode]
+            if "main" in label:
+                return effective["main"]
+            if "Indexer" in label:
+                return effective["indexer"]
+            if "compressor" in label:
+                return effective["states"]
+            return allocated
+
+        rows: list[
+            tuple[
+                str,
+                list[tuple[str, float, str]],
+                str,
+                bool,
+            ]
+        ] = []
+
+        def add_row(
+            label: str,
+            entries: list[tuple[str, float, str]],
+            note: str,
+            total: bool = False,
+        ) -> None:
+            rows.append((label, entries, note, total))
+
+        for label, source_label, category in (
+            ("Attention 计算量", "Attention major FLOPs", "Attention"),
+            ("MoE 计算量", "MoE major FLOPs", "MoE"),
+            ("Other 推理计算量", "Other inference FLOPs", "Other"),
+            ("总推理计算量", "Total inference FLOPs", "Total"),
+        ):
+            if category == "Attention":
+                values = (
+                    pf1["attention_major_flops_per_rank"],
+                    pf8["attention_major_flops_per_rank"],
+                    dc1["attention_major_flops_per_rank"],
+                    dc8["attention_major_flops_per_rank"],
+                )
+            elif category == "MoE":
+                values = (
+                    pf1["moe_major_flops_per_rank"],
+                    pf8["moe_major_flops_per_rank"],
+                    dc1["moe_major_flops_per_rank"],
+                    dc8["moe_major_flops_per_rank"],
+                )
+            elif category == "Other":
+                values = tuple(
+                    summary["categories"]["Other"]["per_rank_flops"]
+                    for summary in (pf1, pf8, dc1, dc8)
+                )
+            else:
+                values = tuple(
+                    summary["total_per_rank_flops"]
+                    for summary in (pf1, pf8, dc1, dc8)
+                )
+            add_row(
+                label,
+                [
+                    (scenario_ref("PF", "TP1", source_label), values[0], "flops"),
+                    (scenario_ref("PF", "TP8", source_label), values[1], "flops"),
+                    (scenario_ref("DC", "TP1", source_label), values[2], "flops"),
+                    (scenario_ref("DC", "TP8", source_label), values[3], "flops"),
+                ],
+                "单次预填充或解码步骤的每 Rank 逻辑 FLOPs。",
+                category == "Total",
+            )
+
+        for label, source_label, category in (
+            ("Attention HBM 流量", "Attention HBM traffic", "Attention"),
+            ("MoE HBM 流量", "MoE HBM traffic", "MoE"),
+            ("Other HBM 流量", "Other HBM traffic", "Other"),
+            ("总 HBM 流量", "Total HBM traffic", "Total"),
+        ):
+            values = tuple(
+                (
+                    summary["total_hbm_read_bytes_per_rank"]
+                    + summary["total_hbm_write_bytes_per_rank"]
+                    if category == "Total"
+                    else category_hbm(summary, category)
+                )
+                for summary in (pf1, pf8, dc1, dc8)
+            )
+            add_row(
+                label,
+                [
+                    (scenario_ref("PF", "TP1", source_label), values[0], "bytes"),
+                    (scenario_ref("PF", "TP8", source_label), values[1], "bytes"),
+                    (scenario_ref("DC", "TP1", source_label), values[2], "bytes"),
+                    (scenario_ref("DC", "TP8", source_label), values[3], "bytes"),
+                ],
+                "本地逻辑 HBM 读写量，不含缓存复用和算子融合。",
+                category == "Total",
+            )
+
+        for label, source_label, category in (
+            ("Attention 所需 HBM 带宽", "Attention HBM traffic", "Attention"),
+            ("MoE 所需 HBM 带宽", "MoE HBM traffic", "MoE"),
+            ("Other 所需 HBM 带宽", "Other HBM traffic", "Other"),
+        ):
+            prefill_values = (
+                category_hbm(pf1, category)
+                / (self.p.prefill_target_ms / 1000)
+                / 1e9,
+                category_hbm(pf8, category)
+                / (self.p.prefill_target_ms / 1000)
+                / 1e9,
+            )
+            decode_values = (
+                category_hbm(dc1, category)
+                / (self.p.decode_target_ms / 1000)
+                / 1e9,
+                category_hbm(dc8, category)
+                / (self.p.decode_target_ms / 1000)
+                / 1e9,
+            )
+            add_row(
+                label,
+                [
+                    (
+                        f"{scenario_ref('PF', 'TP1', source_label)}/(PrefillTargetMs/1000)/1E9",
+                        prefill_values[0],
+                        "GB/s",
+                    ),
+                    (
+                        f"{scenario_ref('PF', 'TP8', source_label)}/(PrefillTargetMs/1000)/1E9",
+                        prefill_values[1],
+                        "GB/s",
+                    ),
+                    (
+                        f"{scenario_ref('DC', 'TP1', source_label)}/(DecodeTargetMs/1000)/1E9",
+                        decode_values[0],
+                        "GB/s",
+                    ),
+                    (
+                        f"{scenario_ref('DC', 'TP8', source_label)}/(DecodeTargetMs/1000)/1E9",
+                        decode_values[1],
+                        "GB/s",
+                    ),
+                ],
+                "按参数页中的目标时延换算；不是实测带宽。",
+            )
+
+        required_compute_values = (
+            pf1["total_per_rank_flops"] / (self.p.prefill_target_ms / 1000) / 1e12,
+            pf8["total_per_rank_flops"] / (self.p.prefill_target_ms / 1000) / 1e12,
+            dc1["total_per_rank_flops"] / (self.p.decode_target_ms / 1000) / 1e12,
+            dc8["total_per_rank_flops"] / (self.p.decode_target_ms / 1000) / 1e12,
+        )
+        add_row(
+            "目标时延所需计算性能",
+            [
+                (
+                    f"{scenario_ref('PF', 'TP1', 'Total inference FLOPs')}/(PrefillTargetMs/1000)/1E12",
+                    required_compute_values[0],
+                    "TFLOP/s",
+                ),
+                (
+                    f"{scenario_ref('PF', 'TP8', 'Total inference FLOPs')}/(PrefillTargetMs/1000)/1E12",
+                    required_compute_values[1],
+                    "TFLOP/s",
+                ),
+                (
+                    f"{scenario_ref('DC', 'TP1', 'Total inference FLOPs')}/(DecodeTargetMs/1000)/1E12",
+                    required_compute_values[2],
+                    "TFLOP/s",
+                ),
+                (
+                    f"{scenario_ref('DC', 'TP8', 'Total inference FLOPs')}/(DecodeTargetMs/1000)/1E12",
+                    required_compute_values[3],
+                    "TFLOP/s",
+                ),
+            ],
+            "按目标时延折算的每 Rank 最低计算吞吐需求。",
+        )
+
+        interconnect_values = (
+            pf1["total_interconnect_bytes_per_rank"],
+            pf8["total_interconnect_bytes_per_rank"],
+            dc1["total_interconnect_bytes_per_rank"],
+            dc8["total_interconnect_bytes_per_rank"],
+        )
+        add_row(
+            "卡间互连传输量",
+            [
+                (scenario_ref("PF", "TP1", "Interconnect transfer"), interconnect_values[0], "bytes"),
+                (scenario_ref("PF", "TP8", "Interconnect transfer"), interconnect_values[1], "bytes"),
+                (scenario_ref("DC", "TP1", "Interconnect transfer"), interconnect_values[2], "bytes"),
+                (scenario_ref("DC", "TP8", "Interconnect transfer"), interconnect_values[3], "bytes"),
+            ],
+            "Ring 集合通信每 Rank 发送加接收；TP1 为 0。",
+        )
+        interconnect_bandwidth = (
+            interconnect_values[0] / (self.p.prefill_target_ms / 1000) / 1e9,
+            interconnect_values[1] / (self.p.prefill_target_ms / 1000) / 1e9,
+            interconnect_values[2] / (self.p.decode_target_ms / 1000) / 1e9,
+            interconnect_values[3] / (self.p.decode_target_ms / 1000) / 1e9,
+        )
+        add_row(
+            "目标时延所需互连带宽",
+            [
+                (
+                    f"{scenario_ref('PF', 'TP1', 'Interconnect transfer')}/(PrefillTargetMs/1000)/1E9",
+                    interconnect_bandwidth[0],
+                    "GB/s",
+                ),
+                (
+                    f"{scenario_ref('PF', 'TP8', 'Interconnect transfer')}/(PrefillTargetMs/1000)/1E9",
+                    interconnect_bandwidth[1],
+                    "GB/s",
+                ),
+                (
+                    f"{scenario_ref('DC', 'TP1', 'Interconnect transfer')}/(DecodeTargetMs/1000)/1E9",
+                    interconnect_bandwidth[2],
+                    "GB/s",
+                ),
+                (
+                    f"{scenario_ref('DC', 'TP8', 'Interconnect transfer')}/(DecodeTargetMs/1000)/1E9",
+                    interconnect_bandwidth[3],
+                    "GB/s",
+                ),
+            ],
+            "未考虑通信与计算重叠、拓扑和协议效率。",
+        )
+
+        for label, category, kind, note in (
+            ("Attention 逻辑参数量", "Attention", "params", "注意力投影、Compressor、Indexer。"),
+            ("MoE 逻辑参数量", "MoE", "params", "路由/共享专家与 Router。"),
+            ("Other 逻辑参数量", "Other", "params", "Embedding、LM Head、HC 与 Norm。"),
+            ("总逻辑参数量", "Total", "params", "不包含 MTP。"),
+            ("Attention 参数容量", "Attention", "bytes", "按推理 dtype 与量化 Scale 计算。"),
+            ("MoE 参数容量", "MoE", "bytes", "路由专家 FP4、共享专家 FP8、Router 复制。"),
+            ("Other 参数容量", "Other", "bytes", "Embedding、LM Head、HC 与 Norm。"),
+            ("总参数容量", "Total", "bytes", "每 Rank 静态参数驻留。"),
+        ):
+            memory_label = f"{category} Parameter {'Count' if kind == 'params' else 'Capacity'}"
+            values = (
+                parameter_value("TP1", category, kind),
+                parameter_value("TP8", category, kind),
+                parameter_value("TP1", category, kind),
+                parameter_value("TP8", category, kind),
+            )
+            add_row(
+                label,
+                [
+                    (memory_ref("TP1", memory_label), values[0], kind),
+                    (memory_ref("TP8", memory_label), values[1], kind),
+                    (memory_ref("TP1", memory_label), values[2], kind),
+                    (memory_ref("TP8", memory_label), values[3], kind),
+                ],
+                note,
+                category == "Total",
+            )
+
+        for label, prefill_label, decode_label in (
+            ("有效主 KV Cache", "Prefill effective main KV", "Decode effective main KV"),
+            ("有效 Indexer KV Cache", "Prefill effective Indexer KV", "Decode effective Indexer KV"),
+            ("Compressor State", "Prefill compressor states", "Decode compressor states"),
+            ("预分配 KV + State", "Prefill preallocated KV + states", "Decode preallocated KV + states"),
+        ):
+            values = (
+                cache_number(prefill_label, "prefill"),
+                cache_number(prefill_label, "prefill"),
+                cache_number(decode_label, "decode"),
+                cache_number(decode_label, "decode"),
+            )
+            add_row(
+                label,
+                [
+                    (memory_ref("TP1", prefill_label), values[0], "bytes"),
+                    (memory_ref("TP8", prefill_label), values[1], "bytes"),
+                    (memory_ref("TP1", decode_label), values[2], "bytes"),
+                    (memory_ref("TP8", decode_label), values[3], "bytes"),
+                ],
+                "KV 与 Compressor 状态在当前实现中每个 TP Rank 复制。",
+            )
+
+        resident_values = (
+            memory["tp1_parameter_total"] + memory["prefill_allocated_cache"],
+            memory["tp8_parameter_total"] + memory["prefill_allocated_cache"],
+            memory["tp1_parameter_total"] + memory["decode_allocated_cache"],
+            memory["tp8_parameter_total"] + memory["decode_allocated_cache"],
+        )
+        add_row(
+            "总驻留容量",
+            [
+                (
+                    f"{memory_ref('TP1', 'Total Parameter Capacity')}+{memory_ref('TP1', 'Prefill preallocated KV + states')}",
+                    resident_values[0],
+                    "bytes",
+                ),
+                (
+                    f"{memory_ref('TP8', 'Total Parameter Capacity')}+{memory_ref('TP8', 'Prefill preallocated KV + states')}",
+                    resident_values[1],
+                    "bytes",
+                ),
+                (
+                    f"{memory_ref('TP1', 'Total Parameter Capacity')}+{memory_ref('TP1', 'Decode preallocated KV + states')}",
+                    resident_values[2],
+                    "bytes",
+                ),
+                (
+                    f"{memory_ref('TP8', 'Total Parameter Capacity')}+{memory_ref('TP8', 'Decode preallocated KV + states')}",
+                    resident_values[3],
+                    "bytes",
+                ),
+            ],
+                "参数 + 按 MaxContext 预分配的 KV/状态；不含临时工作区。",
+            True,
+        )
+        total_flops_values = (
+            pf1["total_per_rank_flops"],
+            pf8["total_per_rank_flops"],
+            dc1["total_per_rank_flops"],
+            dc8["total_per_rank_flops"],
+        )
+        add_row(
+            "一次推理所需芯片计算量",
+            [
+                (scenario_ref("PF", "TP1", "Total inference FLOPs"), total_flops_values[0], "flops"),
+                (scenario_ref("PF", "TP8", "Total inference FLOPs"), total_flops_values[1], "flops"),
+                (scenario_ref("DC", "TP1", "Total inference FLOPs"), total_flops_values[2], "flops"),
+                (scenario_ref("DC", "TP8", "Total inference FLOPs"), total_flops_values[3], "flops"),
+            ],
+            "单次推理调用的单 Rank 总 FLOPs；不除以目标时延。",
+            True,
+        )
+
+        headers = [
+            "资源项目",
+            "预填充 TP1",
+            "预填充 TP8/每 Rank",
+            "解码 TP1",
+            "解码 TP8/每 Rank",
+            "说明",
+        ]
+        table_header = 3
+        table_first_row = table_header + 1
+        raw_cols = (6, 7, 8, 9)
+        row_by_label: dict[str, int] = {}
+        ws.write_row(table_header, 0, headers, self.formats["header"])
+        for offset, (label, entries, note, total) in enumerate(rows):
+            row = table_first_row + offset
+            row_by_label[label] = row
+            ws.write(row, 0, display_label(label), self.formats["total" if total else "text"])
+            for value_index, (reference, value, kind) in enumerate(entries):
+                formula = reference if reference.startswith("=") else f"={reference}"
+                self._write_human_value(
+                    ws,
+                    row,
+                    value_index + 1,
+                    value_index + 1,
+                    raw_cols[value_index],
+                    formula,
+                    value,
+                    kind,
+                    total,
+                )
+            ws.write(row, 5, note, self.formats["text"])
+        table_last_row = table_first_row + len(rows) - 1
+        ws.add_table(
+            table_header,
+            0,
+            table_last_row,
+            len(headers) - 1,
+            {
+                "name": "Comparison_Resource_Overview",
+                "style": "Table Style Medium 2",
+                "columns": [{"header": header} for header in headers],
+            },
+        )
+
+        ws.set_column(raw_cols[0], raw_cols[-1], None, None, {"hidden": True})
+        helper_start_col = 18
+        helper_next_row = table_last_row + 3
+
+        def add_chart(
+            title: str,
+            anchor: str,
+            category_labels: list[str],
+            series_sources: list[tuple[str, list[tuple[int, int, float, float]]]],
+            y_name: str,
+            number_format: str,
+        ) -> None:
+            nonlocal helper_next_row
+            block_header = helper_next_row
+            ws.write(block_header, helper_start_col, "类别", self.formats["header"])
+            for series_index, (series_name, _) in enumerate(series_sources, start=1):
+                ws.write(
+                    block_header,
+                    helper_start_col + series_index,
+                    series_name,
+                    self.formats["header"],
+                )
+            for category_index, category_label in enumerate(category_labels):
+                row = block_header + 1 + category_index
+                ws.write(row, helper_start_col, category_label, self.formats["text"])
+                for series_index, (_, source_rows) in enumerate(series_sources, start=1):
+                    table_row, raw_col, divisor, cached_value = source_rows[category_index]
+                    raw_ref = f"{xl_col_to_name(raw_col)}{table_row + 1}"
+                    ws.write_formula(
+                        row,
+                        helper_start_col + series_index,
+                        f"={raw_ref}/{divisor:g}",
+                        self.formats["number"],
+                        cached_value / divisor,
+                    )
+            chart = self.workbook.add_chart({"type": "column"})
+            for series_index, (series_name, _) in enumerate(series_sources, start=1):
+                source_col = helper_start_col + series_index
+                chart.add_series(
+                    {
+                        "name": series_name,
+                        "categories": [
+                            "Comparison",
+                            block_header + 1,
+                            helper_start_col,
+                            block_header + len(category_labels),
+                            helper_start_col,
+                        ],
+                        "values": [
+                            "Comparison",
+                            block_header + 1,
+                            source_col,
+                            block_header + len(category_labels),
+                            source_col,
+                        ],
+                        "data_labels": {
+                            "value": True,
+                            "num_format": number_format,
+                        },
+                    }
+                )
+            chart.show_hidden_data()
+            chart.set_title({"name": title})
+            chart.set_y_axis(
+                {
+                    "name": y_name,
+                    "num_format": number_format,
+                    "major_gridlines": {"visible": True},
+                }
+            )
+            chart.set_x_axis({"label_position": "low"})
+            chart.set_legend({"position": "bottom"})
+            chart.set_style(10)
+            ws.insert_chart(anchor, chart, {"x_scale": 1.28, "y_scale": 1.15})
+            helper_next_row = block_header + max(len(category_labels), 4) + 3
+
+        def source_for(
+            label: str,
+            raw_col: int,
+            divisor: float,
+        ) -> tuple[int, int, float, float]:
+            table_row = row_by_label[label]
+            raw_value = rows[table_row - table_first_row][1][raw_cols.index(raw_col)][1]
+            return table_row, raw_col, divisor, raw_value
+
+        anchor_row = table_last_row + 4
+        add_chart(
+            "一次推理所需总计算量/单 Rank",
+            f"A{anchor_row}",
+            ["预填充 TP1", "预填充 TP8", "解码 TP1", "解码 TP8"],
+            [
+                (
+                    "单次推理 GFLOPs",
+                    [
+                        source_for("一次推理所需芯片计算量", raw_col, 1e9)
+                        for raw_col in raw_cols
+                    ],
+                )
+            ],
+            "GFLOPs",
+            '0.0" GFLOPs"',
+        )
+        add_chart(
+            "预填充每 Rank 计算量",
+            f"A{anchor_row + 17}",
+            ["注意力", "混合专家", "其他"],
+            [
+                (
+                    "TP1 TFLOPs",
+                    [
+                        source_for(label, raw_cols[0], 1e12)
+                        for label in ("Attention 计算量", "MoE 计算量", "Other 推理计算量")
+                    ],
+                ),
+                (
+                    "TP8 TFLOPs",
+                    [
+                        source_for(label, raw_cols[1], 1e12)
+                        for label in ("Attention 计算量", "MoE 计算量", "Other 推理计算量")
+                    ],
+                ),
+            ],
+            "TFLOPs",
+            '0.0" TFLOPs"',
+        )
+        add_chart(
+            "解码每 Rank 计算量",
+            f"J{anchor_row + 17}",
+            ["注意力", "混合专家", "其他"],
+            [
+                (
+                    "TP1 GFLOPs",
+                    [
+                        source_for(label, raw_cols[2], 1e9)
+                        for label in ("Attention 计算量", "MoE 计算量", "Other 推理计算量")
+                    ],
+                ),
+                (
+                    "TP8 GFLOPs",
+                    [
+                        source_for(label, raw_cols[3], 1e9)
+                        for label in ("Attention 计算量", "MoE 计算量", "Other 推理计算量")
+                    ],
+                ),
+            ],
+            "GFLOPs",
+            '0.0" GFLOPs"',
+        )
+        add_chart(
+            "预填充每 Rank HBM 流量",
+            f"A{anchor_row + 34}",
+            ["注意力", "混合专家", "其他"],
+            [
+                (
+                    "TP1 GB",
+                    [
+                        source_for(label, raw_cols[0], 1e9)
+                        for label in ("Attention HBM 流量", "MoE HBM 流量", "Other HBM 流量")
+                    ],
+                ),
+                (
+                    "TP8 GB",
+                    [
+                        source_for(label, raw_cols[1], 1e9)
+                        for label in ("Attention HBM 流量", "MoE HBM 流量", "Other HBM 流量")
+                    ],
+                ),
+            ],
+            "GB",
+            '0.0" GB"',
+        )
+        add_chart(
+            "解码每 Rank HBM 流量",
+            f"J{anchor_row + 34}",
+            ["注意力", "混合专家", "其他"],
+            [
+                (
+                    "TP1 GB",
+                    [
+                        source_for(label, raw_cols[2], 1e9)
+                        for label in ("Attention HBM 流量", "MoE HBM 流量", "Other HBM 流量")
+                    ],
+                ),
+                (
+                    "TP8 GB",
+                    [
+                        source_for(label, raw_cols[3], 1e9)
+                        for label in ("Attention HBM 流量", "MoE HBM 流量", "Other HBM 流量")
+                    ],
+                ),
+            ],
+            "GB",
+            '0.0" GB"',
+        )
+        add_chart(
+            "静态参数容量/单 Rank",
+            f"A{anchor_row + 51}",
+            ["注意力", "混合专家", "其他"],
+            [
+                (
+                    "TP1 GB",
+                    [
+                        source_for(label, raw_cols[0], 1e9)
+                        for label in ("Attention 参数容量", "MoE 参数容量", "Other 参数容量")
+                    ],
+                ),
+                (
+                    "TP8 GB",
+                    [
+                        source_for(label, raw_cols[1], 1e9)
+                        for label in ("Attention 参数容量", "MoE 参数容量", "Other 参数容量")
+                    ],
+                ),
+            ],
+            "GB",
+            '0.0" GB"',
+        )
+        add_chart(
+            "TP1 vs TP8：单 Rank 推理驻留容量",
+            f"J{anchor_row + 51}",
+            ["预填充", "解码"],
+            [
+                (
+                    "TP1 GB",
+                    [
+                        source_for("总驻留容量", raw_cols[0], 1e9),
+                        source_for("总驻留容量", raw_cols[2], 1e9),
+                    ],
+                ),
+                (
+                    "TP8 GB",
+                    [
+                        source_for("总驻留容量", raw_cols[1], 1e9),
+                        source_for("总驻留容量", raw_cols[3], 1e9),
+                    ],
+                ),
+            ],
+            "GB",
+            '0.0" GB"',
+        )
+        ws.set_column("A:A", 30)
+        ws.set_column("B:E", 20)
+        ws.set_column("F:F", 72)
+        ws.set_column(helper_start_col, helper_start_col + 2, None, None, {"hidden": True})
 
     def write_summary(self, memory: dict[str, float]) -> None:
         """Write two independent per-rank TP sections; never aggregate TP1 and TP8."""
@@ -3350,7 +3586,7 @@ class InferenceComparisonWriter(CalculatorWriter):
             ws.write_row(
                 header_row,
                 0,
-                ["资源项目", "Prefill/rank", "Decode/rank", "说明"],
+                ["资源项目", "预填充/每 Rank", "解码/每 Rank", "说明"],
                 self.formats["header"],
             )
             specs: list[
@@ -3447,7 +3683,7 @@ class InferenceComparisonWriter(CalculatorWriter):
                             dc_value,
                         ),
                         "GB/s",
-                        "按 Parameters 中目标时延换算。",
+                        "按参数页中的目标时延换算。",
                     )
                 )
 
@@ -3507,11 +3743,11 @@ class InferenceComparisonWriter(CalculatorWriter):
 
             for label, category, kind, note in (
                 ("Attention 逻辑参数量", "Attention", "params", "投影、Compressor、Indexer。"),
-                ("MoE 逻辑参数量", "MoE", "params", "Routed/Shared Expert 与 Router。"),
+                ("MoE 逻辑参数量", "MoE", "params", "路由/共享专家与 Router。"),
                 ("Other 逻辑参数量", "Other", "params", "Embedding、LM Head、HC、Norm。"),
                 ("总逻辑参数量", "Total", "params", "不含 MTP。"),
                 ("Attention 参数容量", "Attention", "bytes", "按推理 dtype 与 Scale 计算。"),
-                ("MoE 参数容量", "MoE", "bytes", "Routed FP4，Shared FP8。"),
+                ("MoE 参数容量", "MoE", "bytes", "路由专家 FP4，共享专家 FP8。"),
                 ("Other 参数容量", "Other", "bytes", "Embedding、LM Head、HC、Norm。"),
                 ("总参数容量", "Total", "bytes", "单 Rank 静态参数驻留。"),
             ):
@@ -3532,7 +3768,7 @@ class InferenceComparisonWriter(CalculatorWriter):
                         (memory_ref(tp, pf_label), cache_number(pf_label, "prefill")),
                         (memory_ref(tp, dc_label), cache_number(dc_label, "decode")),
                         "bytes",
-                        "KV/State 在当前实现中每个 TP Rank 复制。",
+                        "KV/状态在当前实现中每个 TP Rank 复制。",
                     )
                 )
 
@@ -3551,7 +3787,7 @@ class InferenceComparisonWriter(CalculatorWriter):
                         total_parameter + dc_allocated,
                     ),
                     "bytes",
-                    "参数 + 预分配 KV/State；不含临时 workspace。",
+                    "参数 + 预分配 KV/状态；不含临时工作区。",
                 )
             )
 
@@ -3561,7 +3797,7 @@ class InferenceComparisonWriter(CalculatorWriter):
                 ws.write(
                     row,
                     0,
-                    label,
+                    display_label(label),
                     self.formats["total" if total else "text"],
                 )
                 for value_col, unit_col, raw_col, spec in (
@@ -3724,6 +3960,17 @@ def validate_baseline(
     layers = count_layers(ratios, p)
     if (layers.total, layers.window, layers.short, layers.long) != (43, 2, 21, 20):
         raise AssertionError(f"Unexpected layer mix: {layers}")
+    architecture_checks = (
+        (p.heads % p.tp == 0 and p.heads % p.comparison_tp == 0, "Q heads are not divisible by TP1 and TP8"),
+        (p.routed_experts % p.tp == 0 and p.routed_experts % p.comparison_tp == 0, "Experts are not divisible by TP1 and TP8"),
+        (p.o_groups % p.tp == 0 and p.o_groups % p.comparison_tp == 0, "Output groups are not divisible by TP1 and TP8"),
+        (p.index_heads % p.tp == 0 and p.index_heads % p.comparison_tp == 0, "Indexer heads are not divisible by TP1 and TP8"),
+        (p.activated_experts <= p.routed_experts, "Activated experts exceed routed experts"),
+        (p.rope_dim <= p.head_dim, "RoPE dimension exceeds head dimension"),
+    )
+    for valid, message in architecture_checks:
+        if not valid:
+            raise AssertionError(message)
     decode = summarize_items(decode_items)
     if not math.isclose(
         decode["attention_major_flops_per_rank"], 123_969_470_464, rel_tol=0, abs_tol=1
@@ -3788,18 +4035,24 @@ def validate_baseline(
             )
         if b"#REF!" in formula_payload or b"#NAME?" in formula_payload:
             raise AssertionError("Workbook contains an invalid formula reference")
+        if b"Memory!" in formula_payload or b"dtype!" in formula_payload:
+            raise AssertionError("Workbook contains a stale standalone-sheet reference")
         workbook_xml = archive.read("xl/workbook.xml")
         for required_sheet in (
             b"Summary",
             b"Prefill_8K",
             b"Decode_1M",
-            b"Memory",
             b"dtype",
             b"Comparison",
             b"Methodology",
         ):
             if required_sheet not in workbook_xml:
                 raise AssertionError(f"Missing workbook sheet: {required_sheet!r}")
+        if b'name="Memory"' in workbook_xml:
+            raise AssertionError("Standalone Memory sheet must be absent")
+        shared_strings = archive.read("xl/sharedStrings.xml")
+        if b"Architecture validation" in shared_strings:
+            raise AssertionError("Architecture validation must remain code-only")
         chart_payloads = [
             archive.read(name)
             for name in archive.namelist()
@@ -3809,14 +4062,45 @@ def validate_baseline(
             raise AssertionError("Expected seven readable comparison charts")
         if any(b"logBase" in payload or b"0.000E" in payload for payload in chart_payloads):
             raise AssertionError("Charts must not use log axes or scientific formats")
+        chart_namespace = {
+            "c": "http://schemas.openxmlformats.org/drawingml/2006/chart"
+        }
+        chart_formulas = [
+            formula.text or ""
+            for payload in chart_payloads
+            for formula in ET.fromstring(payload).findall(".//c:f", chart_namespace)
+        ]
+        if any(
+            any(f"${column}$" in formula for column in ("G", "H", "I", "J"))
+            for formula in chart_formulas
+        ):
+            raise AssertionError("Charts must use scaled hidden sources, not raw columns")
+        first_chart_formats = [
+            node.attrib.get("formatCode", "")
+            for node in ET.fromstring(chart_payloads[0]).findall(
+                ".//c:numFmt", chart_namespace
+            )
+        ]
+        if not any("GFLOPs" in format_code for format_code in first_chart_formats):
+            raise AssertionError("Total FLOPs chart must use a readable GFLOPs format")
         workbook_root = ET.fromstring(workbook_xml)
         namespace = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
         sheet_names = [
             sheet.attrib["name"]
             for sheet in workbook_root.find("m:sheets", namespace)
         ]
-        if sheet_names[-1] != "Summary":
-            raise AssertionError("Summary must be the final worksheet")
+        expected_sheet_order = [
+            "Parameters",
+            "Prefill_8K",
+            "Decode_1M",
+            "dtype",
+            "Comparison",
+            "Summary",
+            "Layer_Config",
+            "Methodology",
+        ]
+        if sheet_names != expected_sheet_order:
+            raise AssertionError(f"Unexpected worksheet order: {sheet_names}")
         for target in ("Prefill_8K", "Decode_1M"):
             sheet_index = sheet_names.index(target) + 1
             sheet_root = ET.fromstring(
@@ -3825,21 +4109,57 @@ def validate_baseline(
             pane = sheet_root.find(".//m:pane", namespace)
             if pane is None or pane.attrib.get("ySplit") != "3":
                 raise AssertionError(f"{target} must freeze only the top three rows")
-        rank_table = None
+        rank_tables: dict[str, ET.Element] = {}
+        comparison_tables: list[ET.Element] = []
         for name in archive.namelist():
             if not name.startswith("xl/tables/table"):
                 continue
             candidate = ET.fromstring(archive.read(name))
-            if candidate.attrib.get("name") == "Per_Rank_Inference_Memory":
-                rank_table = candidate
-                break
-        if rank_table is None:
-            raise AssertionError("Missing representative per-rank memory table")
-        first_cell, last_cell = rank_table.attrib["ref"].split(":")
-        first_row = int(re.search(r"\d+", first_cell).group())
-        last_row = int(re.search(r"\d+", last_cell).group())
-        if last_row - first_row != 2:
-            raise AssertionError("Per-rank memory table must contain TP1 and TP8 only")
+            if candidate.attrib.get("name") == "Comparison_Resource_Overview":
+                comparison_tables.append(candidate)
+            if candidate.attrib.get("name") in {
+                "PF_Embedded_Rank_Memory",
+                "DC_Embedded_Rank_Memory",
+            }:
+                rank_tables[candidate.attrib["name"]] = candidate
+        if len(comparison_tables) != 1:
+            raise AssertionError("Comparison must contain exactly one resource table")
+        comparison_headers = [
+            column.attrib.get("name", "")
+            for column in comparison_tables[0].findall("{*}tableColumns/{*}tableColumn")
+        ]
+        if comparison_headers != [
+            "资源项目",
+            "预填充 TP1",
+            "预填充 TP8/每 Rank",
+            "解码 TP1",
+            "解码 TP8/每 Rank",
+            "说明",
+        ]:
+            raise AssertionError("Comparison resource table has unexpected columns")
+        if any(header in {"Unit", "单位"} for header in comparison_headers):
+            raise AssertionError("Comparison must not contain a standalone Unit column")
+        if set(rank_tables) != {"PF_Embedded_Rank_Memory", "DC_Embedded_Rank_Memory"}:
+            raise AssertionError("Missing embedded per-rank memory tables")
+        embedded_tables = {
+            candidate.attrib.get("name", "")
+            for name in archive.namelist()
+            if name.startswith("xl/tables/table")
+            for candidate in [ET.fromstring(archive.read(name))]
+        }
+        expected_embedded_tables = {
+            "DType_Module",
+            "DType_Layer",
+            "Comparison_Resource_Overview",
+        }
+        if not expected_embedded_tables.issubset(embedded_tables):
+            raise AssertionError("Missing embedded dtype or Comparison tables")
+        for rank_table in rank_tables.values():
+            first_cell, last_cell = rank_table.attrib["ref"].split(":")
+            first_row = int(re.search(r"\d+", first_cell).group())
+            last_row = int(re.search(r"\d+", last_cell).group())
+            if last_row - first_row != 2:
+                raise AssertionError("Embedded per-rank memory table must contain TP1 and TP8 only")
 
 
 def parse_args() -> argparse.Namespace:
@@ -3860,14 +4180,14 @@ def main() -> None:
 
     writer = InferenceComparisonWriter(output, p, ratios)
     writer.write_parameters()
-    writer.write_layer_config()
     writer.write_scenario("prefill")
     writer.write_scenario("decode")
-    memory = writer.write_memory()
     writer.write_dtype()
+    memory = writer.write_memory()
     writer.write_comparison(memory)
-    writer.write_methodology()
     writer.write_summary(memory)
+    writer.write_layer_config()
+    writer.write_methodology()
     writer.close()
 
     write_reports(output.parent, p, ratios, memory, prefill_items, decode_items)
