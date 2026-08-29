@@ -74,13 +74,8 @@ DISPLAY_LABELS = {
     "Other parameter capacity": "其他参数容量",
     "Total parameter capacity": "总参数容量",
     "Total resident capacity": "Total capacity per inference / rank",
-    "Attention required HBM bandwidth": "注意力所需 HBM 带宽",
-    "MoE required HBM bandwidth": "混合专家所需 HBM 带宽",
-    "Other required HBM bandwidth": "其他所需 HBM 带宽",
-    "Interconnect transfer": "卡间互连传输量",
-    "Arithmetic intensity": "算术强度",
+    "Interconnect transfer": "通信量",
     "One-inference compute demand": "一次推理所需计算量",
-    "Required HBM at target": "目标时延所需 HBM 带宽",
     "Prefill effective main KV": "预填充有效主 KV 缓存",
     "Prefill effective Indexer KV": "预填充有效 Indexer KV 缓存",
     "Prefill compressor states": "预填充 Compressor 状态",
@@ -91,14 +86,6 @@ DISPLAY_LABELS = {
     "Decode preallocated KV + states": "解码预分配 KV + 状态",
     "Total FLOPs/rank": "总 FLOPs/每 Rank",
     "Total aggregate FLOPs": "总聚合 FLOPs",
-    "HBM read/rank": "HBM 读取量/每 Rank",
-    "HBM write/rank": "HBM 写入量/每 Rank",
-    "HBM total/rank": "HBM 总流量/每 Rank",
-    "Interconnect/rank": "卡间互连/每 Rank",
-    "Required compute at target": "目标时延所需算力",
-    "Compute lower bound": "算力下界",
-    "HBM lower bound": "HBM 下界",
-    "Interconnect lower bound": "卡间互连下界",
     "token rows": "令牌行",
     "pairs/sequence": "对数/序列",
     "probability": "概率",
@@ -170,10 +157,6 @@ class Inputs:
     fp4_block: int = 32
     kernel_min_heads: int = 16
     peak_tflops: float = 1000
-    hbm_gbps: float = 3000
-    interconnect_gbps: float = 900
-    prefill_target_ms: float = 1000
-    decode_target_ms: float = 10
 
 
 @dataclass(frozen=True)
@@ -318,7 +301,6 @@ TP_FORMULA_NAMES = (
     "LocalVocab",
     "TPSize",
 )
-
 
 def formula_for_tp(formula: str, label: str) -> str:
     """Map generic TP names in an Excel formula to TP1/TP8 named cells."""
@@ -1147,7 +1129,7 @@ def scenario_items(
             "=0",
             0,
             "Auxiliary",
-            "临时 BF16 residual/HC state 不重复计入目标 HBM 带宽推导；驻留容量口径在场景汇总中单独说明。",
+            "临时 BF16 residual/HC state 不重复计入静态参数容量；驻留容量口径在场景汇总中单独说明。",
         )
     )
 
@@ -1544,7 +1526,7 @@ class CalculatorWriter:
         self.workbook.set_properties(
             {
                 "title": "DeepSeek V4 Flash Architecture Calculator",
-                "subject": "Formula-driven TP, FLOPs, HBM, and memory analysis",
+                "subject": "Formula-driven TP, FLOPs, capacity, and communication analysis",
                 "author": "DeepSeek V4 Flash repository calculator",
             }
         )
@@ -1672,10 +1654,6 @@ class CalculatorWriter:
             ("Quantization", "FP4 scale block", "FP4Block", self.p.fp4_block, "elements", "沿 K 维度的 FP4 专家 Scale 分块大小。"),
             ("Kernel", "Minimum sparse-attention heads", "KernelMinHeads", self.p.kernel_min_heads, "heads", "当本地头数不足时，内核补齐到该头数。"),
             ("Hardware", "Peak compute", "PeakTFLOPs", self.p.peak_tflops, "TFLOP/s", "可编辑的示例硬件峰值算力。"),
-            ("Hardware", "HBM bandwidth", "HBMBandwidthGBps", self.p.hbm_gbps, "GB/s", "可编辑的持续/目标 HBM 带宽。"),
-            ("Hardware", "Interconnect bandwidth", "InterconnectGBps", self.p.interconnect_gbps, "GB/s", "可编辑的有效双向互连带宽。"),
-            ("Hardware", "Prefill target latency", "PrefillTargetMs", self.p.prefill_target_ms, "ms", "仅用于推导所需 HBM 带宽和卡间互连带宽。"),
-            ("Hardware", "Decode target latency", "DecodeTargetMs", self.p.decode_target_ms, "ms", "仅用于推导所需 HBM 带宽和卡间互连带宽。"),
         ]
         row = 3
         for category, label, name, value, unit, description in records:
@@ -2108,7 +2086,7 @@ class InferenceComparisonWriter(CalculatorWriter):
         ws.write(
             1,
             0,
-            "容量为单 Rank 资源；分类容量是静态参数，整网容量另含 MaxContext 预分配 KV/State。可见通信列为原始集合通信数据量，底层 HBM 访问量仅保留在隐藏审计列中用于推导目标带宽。",
+            "容量为单 Rank 资源；分类容量是静态参数，整网容量另含 MaxContext 预分配 KV/State。可见通信列为每 Rank 原始集合通信数据量。",
             self.formats["note"],
         )
         helper_end = self._write_scenario_helpers(ws, mode, prefix, helpers)
@@ -2121,7 +2099,7 @@ class InferenceComparisonWriter(CalculatorWriter):
             ("LM Head", "LM Head", "Model tail", "FP32", "FP32 logits", "词表维度按 TP 分片；Prefill 只计算最后一个 token 的 logits。"),
             ("Norm", "Norm", "Block norms + final norm", "FP32", "BF16 -> FP32 -> BF16", "含注意力 Sink 向量的参数容量。"),
             ("HC", "Hyper-Connections", "Block HC + tail HC head", "FP32", "FP32 mixing + BF16 hidden/residual", "含 block HC 和模型尾部 HC head。"),
-            ("residual", "residual", "HC state workspace", "N/A", "BF16 residual / HC state", "临时 workspace 不重复计入目标 HBM 带宽推导和驻留容量。"),
+            ("residual", "residual", "HC state workspace", "N/A", "BF16 residual / HC state", "临时 workspace 不重复计入驻留容量。"),
         ]
         summary_section = helper_end + 1
         summary_header = summary_section + 1
@@ -2129,15 +2107,14 @@ class InferenceComparisonWriter(CalculatorWriter):
         summary_last = summary_first + len(summary_rows) - 1
         ws.merge_range(summary_section, 0, summary_section, 9, "整网与主要模块汇总", self.formats["section"])
         summary_headers = [
-            "类别", "TP1 容量", "TP1 算力", "TP1 集合通信数据量",
-            "TP8 容量/rank", "TP8 算力/rank", "TP8 集合通信数据量/rank",
+            "类别", "TP1 容量", "TP1 算力", "TP1 通信量",
+            "TP8 容量/rank", "TP8 算力/rank", "TP8 通信量/rank",
             "参数类型", "激活类型", "说明",
         ]
         ws.write_row(summary_header, 0, summary_headers, self.formats["header"])
         raw_summary_cols = {
-            "tp1_capacity": 30, "tp1_flops": 31, "tp1_hbm": 32,
-            "tp8_capacity": 33, "tp8_flops": 34, "tp8_hbm": 35,
-            "tp1_network": 36, "tp8_network": 37,
+            "tp1_capacity": 30, "tp1_flops": 31, "tp1_network": 32,
+            "tp8_capacity": 33, "tp8_flops": 34, "tp8_network": 35,
         }
         summary_row_by_label: dict[str, int] = {}
 
@@ -2153,22 +2130,16 @@ class InferenceComparisonWriter(CalculatorWriter):
 
         def resource_formulas(
             items: list[Item], tp_label: str, key: str
-        ) -> tuple[str, float, str, float, str, float, str, float]:
+        ) -> tuple[str, float, str, float, str, float]:
             chosen = selected(items, key)
             capacity_formula = formula_sum([formula_for_tp(item.capacity_formula, tp_label) for item in chosen])
             flops_formula = formula_sum([formula_for_tp(item.rank_flops_formula, tp_label) for item in chosen])
-            hbm_formula = formula_sum([
-                f"({self._formula_body(formula_for_tp(item.read_formula, tp_label))})+({self._formula_body(formula_for_tp(item.write_formula, tp_label))})"
-                for item in chosen
-            ])
             network_formula = formula_sum([formula_for_tp(item.network_formula, tp_label) for item in chosen])
             return (
                 capacity_formula,
                 sum(item.capacity_bytes for item in chosen),
                 flops_formula,
                 sum(item.rank_flops for item in chosen),
-                hbm_formula,
-                sum(item.read_bytes + item.write_bytes for item in chosen),
                 network_formula,
                 sum(item.network_bytes for item in chosen),
             )
@@ -2181,8 +2152,6 @@ class InferenceComparisonWriter(CalculatorWriter):
                 tp1_capacity,
                 tp1_flops_formula,
                 tp1_flops,
-                tp1_hbm_formula,
-                tp1_hbm,
                 tp1_network_formula,
                 tp1_network,
             ) = resource_formulas(tp1_items, "TP1", key)
@@ -2191,8 +2160,6 @@ class InferenceComparisonWriter(CalculatorWriter):
                 tp8_capacity,
                 tp8_flops_formula,
                 tp8_flops,
-                tp8_hbm_formula,
-                tp8_hbm,
                 tp8_network_formula,
                 tp8_network,
             ) = resource_formulas(tp8_items, "TP8", key)
@@ -2212,20 +2179,6 @@ class InferenceComparisonWriter(CalculatorWriter):
                 (6, raw_summary_cols["tp8_network"], tp8_network_formula, tp8_network, "bytes"),
             ):
                 self._write_human_value(ws, row, value_col, value_col, raw_col, formula, value, kind, label == "整网")
-            ws.write_formula(
-                row,
-                raw_summary_cols["tp1_hbm"],
-                tp1_hbm_formula,
-                self.formats["number"],
-                tp1_hbm,
-            )
-            ws.write_formula(
-                row,
-                raw_summary_cols["tp8_hbm"],
-                tp8_hbm_formula,
-                self.formats["number"],
-                tp8_hbm,
-            )
             ws.write(row, 7, parameter_type, self.formats["text"])
             ws.write(row, 8, activation_type, self.formats["text"])
 
@@ -2246,15 +2199,14 @@ class InferenceComparisonWriter(CalculatorWriter):
         detail_first = detail_header + 1
         detail_last = detail_first + len(detail_tp1) - 1
         detail_headers = [
-            "类别", "典型层/模块", "层范围", "TP1 容量", "TP1 算力", "TP1 集合通信数据量",
-            "TP8 容量/rank", "TP8 算力/rank", "TP8 集合通信数据量/rank", "参数类型", "激活类型", "说明",
+            "类别", "典型层/模块", "层范围", "TP1 容量", "TP1 算力", "TP1 通信量",
+            "TP8 容量/rank", "TP8 算力/rank", "TP8 通信量/rank", "参数类型", "激活类型", "说明",
         ]
         ws.merge_range(detail_section, 0, detail_section, len(detail_headers) - 1, "典型层与模块明细", self.formats["section"])
         ws.write_row(detail_header, 0, detail_headers, self.formats["header"])
         raw_detail_cols = {
-            "tp1_capacity": 20, "tp1_flops": 21, "tp1_hbm": 22,
-            "tp8_capacity": 23, "tp8_flops": 24, "tp8_hbm": 25,
-            "tp1_network": 26, "tp8_network": 27,
+            "tp1_capacity": 20, "tp1_flops": 21, "tp1_network": 22,
+            "tp8_capacity": 23, "tp8_flops": 24, "tp8_network": 25,
         }
         cache_labels = {spec[0] for spec in cache_specs}
 
@@ -2275,8 +2227,6 @@ class InferenceComparisonWriter(CalculatorWriter):
             tp8_capacity_formula = formula_for_tp(tp8_item.capacity_formula, "TP8")
             tp1_flops_formula = formula_for_tp(tp1_item.rank_flops_formula, "TP1")
             tp8_flops_formula = formula_for_tp(tp8_item.rank_flops_formula, "TP8")
-            tp1_hbm_formula = formula_sum([formula_for_tp(tp1_item.read_formula, "TP1"), formula_for_tp(tp1_item.write_formula, "TP1")])
-            tp8_hbm_formula = formula_sum([formula_for_tp(tp8_item.read_formula, "TP8"), formula_for_tp(tp8_item.write_formula, "TP8")])
             tp1_network_formula = formula_for_tp(tp1_item.network_formula, "TP1")
             tp8_network_formula = formula_for_tp(tp8_item.network_formula, "TP8")
             ws.write(row, 0, detail_category(tp1_item), self.formats["text"])
@@ -2284,23 +2234,9 @@ class InferenceComparisonWriter(CalculatorWriter):
             ws.write(row, 2, tp1_item.layer_scope, self.formats["text"])
             self._write_human_value(ws, row, 3, 3, raw_detail_cols["tp1_capacity"], tp1_capacity_formula, tp1_item.capacity_bytes, "bytes")
             self._write_human_value(ws, row, 4, 4, raw_detail_cols["tp1_flops"], tp1_flops_formula, tp1_item.rank_flops, "flops")
-            ws.write_formula(
-                row,
-                raw_detail_cols["tp1_hbm"],
-                tp1_hbm_formula,
-                self.formats["number"],
-                tp1_item.read_bytes + tp1_item.write_bytes,
-            )
             self._write_human_value(ws, row, 5, 5, raw_detail_cols["tp1_network"], tp1_network_formula, tp1_item.network_bytes, "bytes")
             self._write_human_value(ws, row, 6, 6, raw_detail_cols["tp8_capacity"], tp8_capacity_formula, tp8_item.capacity_bytes, "bytes")
             self._write_human_value(ws, row, 7, 7, raw_detail_cols["tp8_flops"], tp8_flops_formula, tp8_item.rank_flops, "flops")
-            ws.write_formula(
-                row,
-                raw_detail_cols["tp8_hbm"],
-                tp8_hbm_formula,
-                self.formats["number"],
-                tp8_item.read_bytes + tp8_item.write_bytes,
-            )
             self._write_human_value(ws, row, 8, 8, raw_detail_cols["tp8_network"], tp8_network_formula, tp8_item.network_bytes, "bytes")
             ws.write(row, 9, tp1_item.parameter_type, self.formats["text"])
             ws.write(row, 10, tp1_item.activation_type, self.formats["text"])
@@ -2325,8 +2261,6 @@ class InferenceComparisonWriter(CalculatorWriter):
         ws.set_row(metric_row, None, None, {"hidden": True})
         total_tp1_flops_ref = self._cell(sheet, summary_row_by_label["整网"], raw_summary_cols["tp1_flops"])
         total_tp8_flops_ref = self._cell(sheet, summary_row_by_label["整网"], raw_summary_cols["tp8_flops"])
-        total_tp1_hbm_ref = self._cell(sheet, summary_row_by_label["整网"], raw_summary_cols["tp1_hbm"])
-        total_tp8_hbm_ref = self._cell(sheet, summary_row_by_label["整网"], raw_summary_cols["tp8_hbm"])
 
         def write_metric(formula: str, value: float, raw_col: int) -> str:
             ws.write_formula(metric_row, raw_col, formula, self.formats["number"], value)
@@ -2338,25 +2272,9 @@ class InferenceComparisonWriter(CalculatorWriter):
             write_metric(formula_sum([formula_for_tp(item.rank_flops_formula, "TP1") for item in other_tp1]), sum(item.rank_flops for item in other_tp1), 40),
             write_metric(formula_sum([formula_for_tp(item.rank_flops_formula, "TP8") for item in other_tp8]), sum(item.rank_flops for item in other_tp8), 41),
         )
-        other_hbm_refs = (
-            write_metric(formula_sum([f"({self._formula_body(formula_for_tp(item.read_formula, 'TP1'))})+({self._formula_body(formula_for_tp(item.write_formula, 'TP1'))})" for item in other_tp1]), sum(item.read_bytes + item.write_bytes for item in other_tp1), 42),
-            write_metric(formula_sum([f"({self._formula_body(formula_for_tp(item.read_formula, 'TP8'))})+({self._formula_body(formula_for_tp(item.write_formula, 'TP8'))})" for item in other_tp8]), sum(item.read_bytes + item.write_bytes for item in other_tp8), 43),
-        )
         network_refs = (
-            write_metric(formula_sum([formula_for_tp(item.network_formula, "TP1") for item in tp1_items]), sum(item.network_bytes for item in tp1_items), 44),
-            write_metric(formula_sum([formula_for_tp(item.network_formula, "TP8") for item in tp8_items]), sum(item.network_bytes for item in tp8_items), 45),
-        )
-        total_tp1_hbm = sum(item.read_bytes + item.write_bytes for item in tp1_items)
-        total_tp8_hbm = sum(item.read_bytes + item.write_bytes for item in tp8_items)
-        intensity_refs = (
-            write_metric(f"={total_tp1_flops_ref}/{total_tp1_hbm_ref}", sum(item.rank_flops for item in tp1_items) / total_tp1_hbm, 46),
-            write_metric(f"={total_tp8_flops_ref}/{total_tp8_hbm_ref}", sum(item.rank_flops for item in tp8_items) / total_tp8_hbm, 47),
-        )
-        target_name = "PrefillTargetMs" if is_prefill else "DecodeTargetMs"
-        target_ms = self.p.prefill_target_ms if is_prefill else self.p.decode_target_ms
-        required_hbm_refs = (
-            write_metric(f"={total_tp1_hbm_ref}/({target_name}/1000)/1E9", total_tp1_hbm / (target_ms / 1000) / 1e9, 48),
-            write_metric(f"={total_tp8_hbm_ref}/({target_name}/1000)/1E9", total_tp8_hbm / (target_ms / 1000) / 1e9, 49),
+            write_metric(formula_sum([formula_for_tp(item.network_formula, "TP1") for item in tp1_items]), sum(item.network_bytes for item in tp1_items), 42),
+            write_metric(formula_sum([formula_for_tp(item.network_formula, "TP8") for item in tp8_items]), sum(item.network_bytes for item in tp8_items), 43),
         )
         self.scenario_refs.update({
             (prefix, "TP1", "Attention major FLOPs"): self._cell(sheet, summary_row_by_label["Attention"], raw_summary_cols["tp1_flops"]),
@@ -2367,20 +2285,8 @@ class InferenceComparisonWriter(CalculatorWriter):
             (prefix, "TP8", "Other inference FLOPs"): other_flops_refs[1],
             (prefix, "TP1", "Total inference FLOPs"): total_tp1_flops_ref,
             (prefix, "TP8", "Total inference FLOPs"): total_tp8_flops_ref,
-            (prefix, "TP1", "Attention HBM traffic"): self._cell(sheet, summary_row_by_label["Attention"], raw_summary_cols["tp1_hbm"]),
-            (prefix, "TP8", "Attention HBM traffic"): self._cell(sheet, summary_row_by_label["Attention"], raw_summary_cols["tp8_hbm"]),
-            (prefix, "TP1", "MoE HBM traffic"): self._cell(sheet, summary_row_by_label["MoE"], raw_summary_cols["tp1_hbm"]),
-            (prefix, "TP8", "MoE HBM traffic"): self._cell(sheet, summary_row_by_label["MoE"], raw_summary_cols["tp8_hbm"]),
-            (prefix, "TP1", "Other HBM traffic"): other_hbm_refs[0],
-            (prefix, "TP8", "Other HBM traffic"): other_hbm_refs[1],
-            (prefix, "TP1", "Total HBM traffic"): total_tp1_hbm_ref,
-            (prefix, "TP8", "Total HBM traffic"): total_tp8_hbm_ref,
-            (prefix, "TP1", "Arithmetic intensity"): intensity_refs[0],
-            (prefix, "TP8", "Arithmetic intensity"): intensity_refs[1],
             (prefix, "TP1", "One-inference compute demand"): total_tp1_flops_ref,
             (prefix, "TP8", "One-inference compute demand"): total_tp8_flops_ref,
-            (prefix, "TP1", "Required HBM at target"): required_hbm_refs[0],
-            (prefix, "TP8", "Required HBM at target"): required_hbm_refs[1],
             (prefix, "TP1", "Interconnect transfer"): network_refs[0],
             (prefix, "TP8", "Interconnect transfer"): network_refs[1],
         })
@@ -2605,14 +2511,12 @@ class InferenceComparisonWriter(CalculatorWriter):
             ("Prefill attention", "使用因果候选对数量，不直接使用 S×S；原始窗口、压缩 KV 和 Indexer 扫描分别统计。"),
             ("Decode attention", "每个解码令牌在解码上下文长度下建模；ratio-4 主注意力取 Top-K，但 Indexer 需要扫描全部已完成压缩项。"),
             ("MoE", "每个令牌执行 Top-K 路由专家和共享专家；专家命中概率用于估算逻辑访问需求。"),
-            ("Required HBM bandwidth", "仅按目标时延推导所需 HBM 带宽，不把本地逻辑读写量作为独立可见统计；不模拟 L2 命中、算子融合、分块、Allocator 或厂商 Kernel 内部复用。"),
             ("Memory", "按推理运行 dtype 估算：路由专家 FP4、多数投影 FP8、Wo_a BF16、Compressor FP32、LM Head FP32，并计入量化 Scale。"),
-            ("Scenario tables", "Prefill_8K 和 Decode_1M 各含两张表：整网资源汇总与典型层/模块明细；两张表共享 TP1/TP8 的容量、算力、集合通信数据量、参数类型和激活类型列；底层 HBM 访问量仅保留在隐藏审计列中用于推导目标带宽。"),
-            ("Resource categories", "汇总分类为 Attention、MoE、Embedding、LM Head、Norm、HC、residual；residual 是 BF16/HC state 工作区，不重复计入驻留容量或目标 HBM 带宽推导。"),
+            ("Scenario tables", "Prefill_8K 和 Decode_1M 各含两张表：整网资源汇总与典型层/模块明细；两张表共享 TP1/TP8 的容量、算力、通信量、参数类型和激活类型列。"),
+            ("Resource categories", "汇总分类为 Attention、MoE、Embedding、LM Head、Norm、HC、residual；residual 是 BF16/HC state 工作区，不重复计入驻留容量。"),
             ("KV cache", "有效容量表示已填充项；预分配容量使用 MaxContext。当前实现的 KV 和 Compressor 状态在每个 TP Rank 上完整复制。"),
             ("TP", "Wq_a、Wkv、Compressor、Router、HC、共享专家复制；Q/O 部分投影、路由专家、Embedding 和 LM Head 按 TP 分片。"),
-            ("Communication", "Ring 公式给出每 Rank 发送加接收的数据量。TP1 为 0；该数值是传输量，不是实测 GB/s 或时延。"),
-            ("Roofline", "计算/HBM/互连下界使用参数页中的可编辑硬件峰值并假设互不重叠；真实运行时间必须通过性能分析验证。"),
+            ("Communication", "Ring 公式给出每 Rank 发送加接收的集合通信数据量。TP1 为 0。"),
             ("Units", "FLOPs 使用 M/G/T/P 十进制单位；容量与流量使用 KB/MB/GB/TB，1 GB=10^9 字节；场景页容量明细保留原始公式。"),
             ("Formula maintenance", "蓝色单元格为输入；结果由 Excel 公式计算并在打开时完整重算。隐藏列保留原始未缩放值，便于审计。"),
         ]
@@ -2630,7 +2534,7 @@ class InferenceComparisonWriter(CalculatorWriter):
         ws.write(
             1,
             0,
-            "计算量、目标 HBM 带宽、参数、缓存、驻留容量与集合通信量集中在一张资源表；隐藏列保留底层访问公式和图表缩放源。",
+            "内存容量、参数量、计算量与通信量集中在一张资源表；隐藏列仅保留公式和图表缩放源。",
             self.formats["note"],
         )
 
@@ -2646,10 +2550,6 @@ class InferenceComparisonWriter(CalculatorWriter):
 
         def memory_ref(tp: str, label: str) -> str:
             return self.memory_refs[(tp, label)]
-
-        def category_hbm(summary: dict[str, Any], category: str) -> float:
-            values = summary["categories"][category]
-            return values["hbm_read_bytes_per_rank"] + values["hbm_write_bytes_per_rank"]
 
         def parameter_value(tp: str, category: str, kind: str) -> float:
             parameters = parameter_components(
@@ -2767,87 +2667,6 @@ class InferenceComparisonWriter(CalculatorWriter):
                 category == "Total",
             )
 
-        for label, source_label, category in (
-            ("Attention required HBM bandwidth", "Attention HBM traffic", "Attention"),
-            ("MoE required HBM bandwidth", "MoE HBM traffic", "MoE"),
-            ("Other required HBM bandwidth", "Other HBM traffic", "Other"),
-        ):
-            prefill_values = (
-                category_hbm(pf1, category)
-                / (self.p.prefill_target_ms / 1000)
-                / 1e9,
-                category_hbm(pf8, category)
-                / (self.p.prefill_target_ms / 1000)
-                / 1e9,
-            )
-            decode_values = (
-                category_hbm(dc1, category)
-                / (self.p.decode_target_ms / 1000)
-                / 1e9,
-                category_hbm(dc8, category)
-                / (self.p.decode_target_ms / 1000)
-                / 1e9,
-            )
-            add_row(
-                label,
-                [
-                    (
-                        f"{scenario_ref('PF', 'TP1', source_label)}/(PrefillTargetMs/1000)/1E9",
-                        prefill_values[0],
-                        "GB/s",
-                    ),
-                    (
-                        f"{scenario_ref('PF', 'TP8', source_label)}/(PrefillTargetMs/1000)/1E9",
-                        prefill_values[1],
-                        "GB/s",
-                    ),
-                    (
-                        f"{scenario_ref('DC', 'TP1', source_label)}/(DecodeTargetMs/1000)/1E9",
-                        decode_values[0],
-                        "GB/s",
-                    ),
-                    (
-                        f"{scenario_ref('DC', 'TP8', source_label)}/(DecodeTargetMs/1000)/1E9",
-                        decode_values[1],
-                        "GB/s",
-                    ),
-                ],
-                "按参数页中的目标时延换算；不是实测带宽。",
-            )
-
-        required_compute_values = (
-            pf1["total_per_rank_flops"] / (self.p.prefill_target_ms / 1000) / 1e12,
-            pf8["total_per_rank_flops"] / (self.p.prefill_target_ms / 1000) / 1e12,
-            dc1["total_per_rank_flops"] / (self.p.decode_target_ms / 1000) / 1e12,
-            dc8["total_per_rank_flops"] / (self.p.decode_target_ms / 1000) / 1e12,
-        )
-        add_row(
-            "Compute required at target latency",
-            [
-                (
-                    f"{scenario_ref('PF', 'TP1', 'Total inference FLOPs')}/(PrefillTargetMs/1000)/1E12",
-                    required_compute_values[0],
-                    "TFLOP/s",
-                ),
-                (
-                    f"{scenario_ref('PF', 'TP8', 'Total inference FLOPs')}/(PrefillTargetMs/1000)/1E12",
-                    required_compute_values[1],
-                    "TFLOP/s",
-                ),
-                (
-                    f"{scenario_ref('DC', 'TP1', 'Total inference FLOPs')}/(DecodeTargetMs/1000)/1E12",
-                    required_compute_values[2],
-                    "TFLOP/s",
-                ),
-                (
-                    f"{scenario_ref('DC', 'TP8', 'Total inference FLOPs')}/(DecodeTargetMs/1000)/1E12",
-                    required_compute_values[3],
-                    "TFLOP/s",
-                ),
-            ],
-            "按目标时延折算的每 Rank 最低计算吞吐需求。",
-        )
-
         interconnect_values = (
             pf1["total_interconnect_bytes_per_rank"],
             pf8["total_interconnect_bytes_per_rank"],
@@ -2863,38 +2682,6 @@ class InferenceComparisonWriter(CalculatorWriter):
                 (scenario_ref("DC", "TP8", "Interconnect transfer"), interconnect_values[3], "bytes"),
             ],
             "Ring 集合通信每 Rank 发送加接收；TP1 为 0。",
-        )
-        interconnect_bandwidth = (
-            interconnect_values[0] / (self.p.prefill_target_ms / 1000) / 1e9,
-            interconnect_values[1] / (self.p.prefill_target_ms / 1000) / 1e9,
-            interconnect_values[2] / (self.p.decode_target_ms / 1000) / 1e9,
-            interconnect_values[3] / (self.p.decode_target_ms / 1000) / 1e9,
-        )
-        add_row(
-            "Required interconnect bandwidth",
-            [
-                (
-                    f"{scenario_ref('PF', 'TP1', 'Interconnect transfer')}/(PrefillTargetMs/1000)/1E9",
-                    interconnect_bandwidth[0],
-                    "GB/s",
-                ),
-                (
-                    f"{scenario_ref('PF', 'TP8', 'Interconnect transfer')}/(PrefillTargetMs/1000)/1E9",
-                    interconnect_bandwidth[1],
-                    "GB/s",
-                ),
-                (
-                    f"{scenario_ref('DC', 'TP1', 'Interconnect transfer')}/(DecodeTargetMs/1000)/1E9",
-                    interconnect_bandwidth[2],
-                    "GB/s",
-                ),
-                (
-                    f"{scenario_ref('DC', 'TP8', 'Interconnect transfer')}/(DecodeTargetMs/1000)/1E9",
-                    interconnect_bandwidth[3],
-                    "GB/s",
-                ),
-            ],
-            "未考虑通信与计算重叠、拓扑和协议效率。",
         )
 
         for label, category, kind, note in (
@@ -2996,7 +2783,7 @@ class InferenceComparisonWriter(CalculatorWriter):
                 (scenario_ref("DC", "TP1", "Total inference FLOPs"), total_flops_values[2], "flops"),
                 (scenario_ref("DC", "TP8", "Total inference FLOPs"), total_flops_values[3], "flops"),
             ],
-            "单次推理调用的单 Rank 总 FLOPs；不除以目标时延。",
+            "单次推理调用的单 Rank 总 FLOPs。",
             True,
         )
 
@@ -3430,10 +3217,6 @@ class InferenceComparisonWriter(CalculatorWriter):
         def memory_ref(tp: str, label: str) -> str:
             return self.memory_refs[(tp, label)]
 
-        def category_hbm(summary: dict[str, Any], category: str) -> float:
-            data = summary["categories"][category]
-            return data["hbm_read_bytes_per_rank"] + data["hbm_write_bytes_per_rank"]
-
         def parameter_value(tp: str, category: str, kind: str) -> float:
             p_config = self.p_tp1 if tp == "TP1" else self.p_tp8
             selected = parameter_components(p_config, self.layers)
@@ -3540,37 +3323,6 @@ class InferenceComparisonWriter(CalculatorWriter):
                     )
                 )
 
-            for label, source_label, category in (
-                ("Attention required HBM bandwidth", "Attention HBM traffic", "Attention"),
-                ("MoE required HBM bandwidth", "MoE HBM traffic", "MoE"),
-                ("Other required HBM bandwidth", "Other HBM traffic", "Other"),
-            ):
-                pf_value = (
-                    category_hbm(prefill_summary, category)
-                    / (self.p.prefill_target_ms / 1000)
-                    / 1e9
-                )
-                dc_value = (
-                    category_hbm(decode_summary, category)
-                    / (self.p.decode_target_ms / 1000)
-                    / 1e9
-                )
-                specs.append(
-                    (
-                        label,
-                        (
-                            f"{scenario_ref('PF', tp, source_label)}/(PrefillTargetMs/1000)/1E9",
-                            pf_value,
-                        ),
-                        (
-                            f"{scenario_ref('DC', tp, source_label)}/(DecodeTargetMs/1000)/1E9",
-                            dc_value,
-                        ),
-                        "GB/s",
-                        "按参数页中的目标时延换算。",
-                    )
-                )
-
             specs.append(
                 (
                     "One-inference compute demand",
@@ -3583,7 +3335,7 @@ class InferenceComparisonWriter(CalculatorWriter):
                         decode_summary["total_per_rank_flops"],
                     ),
                     "flops",
-                    "单次推理调用的单 Rank 总 FLOPs；不除以目标时延，延迟由芯片峰值算力另行估算。",
+                    "单次推理调用的单 Rank 总 FLOPs。",
                 )
             )
             interconnect = (
@@ -3605,26 +3357,6 @@ class InferenceComparisonWriter(CalculatorWriter):
                     "Ring 集合通信单 Rank 发送加接收；TP1 为 0。",
                 )
             )
-            specs.append(
-                (
-                    "Required interconnect bandwidth",
-                    (
-                        f"{scenario_ref('PF', tp, 'Interconnect transfer')}/(PrefillTargetMs/1000)/1E9",
-                        interconnect[0]
-                        / (self.p.prefill_target_ms / 1000)
-                        / 1e9,
-                    ),
-                    (
-                        f"{scenario_ref('DC', tp, 'Interconnect transfer')}/(DecodeTargetMs/1000)/1E9",
-                        interconnect[1]
-                        / (self.p.decode_target_ms / 1000)
-                        / 1e9,
-                    ),
-                    "GB/s",
-                    "未考虑通信与计算重叠、拓扑和协议效率。",
-                )
-            )
-
             for label, category, kind, note in (
                 ("Attention logical parameter count", "Attention", "params", "投影、Compressor、Indexer。"),
                 ("MoE logical parameter count", "MoE", "params", "路由/共享专家与 Router。"),
@@ -3723,16 +3455,12 @@ def summarize_items(items: list[Item]) -> dict[str, Any]:
         categories[category] = {
             "global_flops": sum(item.global_flops for item in selected),
             "per_rank_flops": sum(item.rank_flops for item in selected),
-            "hbm_read_bytes_per_rank": sum(item.read_bytes for item in selected),
-            "hbm_write_bytes_per_rank": sum(item.write_bytes for item in selected),
             "interconnect_bytes_per_rank": sum(item.network_bytes for item in selected),
         }
     return {
         "categories": categories,
         "total_global_flops": sum(item.global_flops for item in items),
         "total_per_rank_flops": sum(item.rank_flops for item in items),
-        "total_hbm_read_bytes_per_rank": sum(item.read_bytes for item in items),
-        "total_hbm_write_bytes_per_rank": sum(item.write_bytes for item in items),
         "total_interconnect_bytes_per_rank": sum(item.network_bytes for item in items),
         "attention_major_flops_per_rank": sum(
             item.rank_flops
@@ -3763,22 +3491,7 @@ def write_reports(
     decode_tp8 = summarize_items(scenario_items(p_tp8, layers, "decode")[0])
 
     def public_summary(summary: dict[str, Any]) -> dict[str, Any]:
-        return {
-            key: (
-                {
-                    category: {
-                        metric: value
-                        for metric, value in metrics.items()
-                        if not metric.startswith("hbm_")
-                    }
-                    for category, metrics in value.items()
-                }
-                if key == "categories"
-                else value
-            )
-            for key, value in summary.items()
-            if not key.startswith("total_hbm_")
-        }
+        return summary
 
     report = {
         "model": "DeepSeek-V4-Flash",
@@ -3823,7 +3536,7 @@ def write_reports(
         f"| Attention FLOPs | {tf(prefill_tp1['attention_major_flops_per_rank'])} | {tf(prefill_tp8['attention_major_flops_per_rank'])} | {tf(decode_tp1['attention_major_flops_per_rank'])} | {tf(decode_tp8['attention_major_flops_per_rank'])} |",
         f"| MoE FLOPs | {tf(prefill_tp1['moe_major_flops_per_rank'])} | {tf(prefill_tp8['moe_major_flops_per_rank'])} | {tf(decode_tp1['moe_major_flops_per_rank'])} | {tf(decode_tp8['moe_major_flops_per_rank'])} |",
         f"| 总 FLOPs | {tf(prefill_tp1['total_per_rank_flops'])} | {tf(prefill_tp8['total_per_rank_flops'])} | {tf(decode_tp1['total_per_rank_flops'])} | {tf(decode_tp8['total_per_rank_flops'])} |",
-        f"| 集合通信传输量 | {gb(prefill_tp1['total_interconnect_bytes_per_rank'])} | {gb(prefill_tp8['total_interconnect_bytes_per_rank'])} | {gb(decode_tp1['total_interconnect_bytes_per_rank'])} | {gb(decode_tp8['total_interconnect_bytes_per_rank'])} |",
+        f"| 通信量 | {gb(prefill_tp1['total_interconnect_bytes_per_rank'])} | {gb(prefill_tp8['total_interconnect_bytes_per_rank'])} | {gb(decode_tp1['total_interconnect_bytes_per_rank'])} | {gb(decode_tp8['total_interconnect_bytes_per_rank'])} |",
         "",
         "## 每 Rank 容量",
         "",
@@ -3970,6 +3683,28 @@ def validate_baseline(
             "".join(node.itertext())
             for node in ET.fromstring(shared_strings).findall("{*}si")
         ]
+        forbidden_visible_terms = (
+            "HBM",
+            "bandwidth",
+            "Bandwidth",
+            "latency",
+            "Latency",
+            "时延",
+            "带宽",
+        )
+        if any(
+            term.encode() in shared_strings
+            for term in forbidden_visible_terms
+        ):
+            raise AssertionError("Workbook still exposes bandwidth or latency metrics")
+        for removed_name in (
+            b"HBMBandwidthGBps",
+            b"InterconnectGBps",
+            b"PrefillTargetMs",
+            b"DecodeTargetMs",
+        ):
+            if removed_name in workbook_xml:
+                raise AssertionError(f"Removed parameter remains: {removed_name!r}")
         if b"Architecture validation" in shared_strings:
             raise AssertionError("Architecture validation must remain code-only")
         chart_payloads = [
@@ -4098,10 +3833,10 @@ def validate_baseline(
                 "类别",
                 "TP1 容量",
                 "TP1 算力",
-                "TP1 集合通信数据量",
+                "TP1 通信量",
                 "TP8 容量/rank",
                 "TP8 算力/rank",
-                "TP8 集合通信数据量/rank",
+                "TP8 通信量/rank",
                 "参数类型",
                 "激活类型",
                 "说明",
@@ -4114,10 +3849,10 @@ def validate_baseline(
                 "层范围",
                 "TP1 容量",
                 "TP1 算力",
-                "TP1 集合通信数据量",
+                "TP1 通信量",
                 "TP8 容量/rank",
                 "TP8 算力/rank",
-                "TP8 集合通信数据量/rank",
+                "TP8 通信量/rank",
                 "参数类型",
                 "激活类型",
                 "说明",
@@ -4214,10 +3949,10 @@ def validate_baseline(
             "激活类型",
             "TP1 容量",
             "TP1 算力",
-            "TP1 集合通信数据量",
+            "TP1 通信量",
             "TP8 容量/rank",
             "TP8 算力/rank",
-            "TP8 集合通信数据量/rank",
+            "TP8 通信量/rank",
         ):
             if summary_label.encode() not in shared_strings:
                 raise AssertionError(f"Missing Scenario summary metric: {summary_label}")

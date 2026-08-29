@@ -15,7 +15,7 @@
 | Attention FLOPs | 102.836 TFLOPs | 23.172 TFLOPs | 0.124 TFLOPs | 0.019 TFLOPs |
 | MoE FLOPs | 124.846 TFLOPs | 31.766 TFLOPs | 0.015 TFLOPs | 0.004 TFLOPs |
 | 总 FLOPs | 228.398 TFLOPs | 55.653 TFLOPs | 0.140 TFLOPs | 0.024 TFLOPs |
-| 集合通信传输量 | 0.000 GB | 40.635 GB | 0.000 GB | 0.006 GB |
+| 通信量 | 0.000 GB | 40.635 GB | 0.000 GB | 0.006 GB |
 
 ## 每 Rank 容量
 

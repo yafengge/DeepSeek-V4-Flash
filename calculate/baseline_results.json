@@ -41,11 +41,7 @@
     "fp8_block": 128,
     "fp4_block": 32,
     "kernel_min_heads": 16,
-    "peak_tflops": 1000,
-    "hbm_gbps": 3000,
-    "interconnect_gbps": 900,
-    "prefill_target_ms": 1000,
-    "decode_target_ms": 10
+    "peak_tflops": 1000
   },
   "layer_counts": {
     "total": 43,
