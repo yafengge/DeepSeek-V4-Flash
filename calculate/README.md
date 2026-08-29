@@ -23,7 +23,7 @@ $HOME/.local/bin/micromamba run -n deepseek-onnx \
 - 场景分类：Attention、MoE、Embedding、LM Head、Norm、HC、residual；典型明细进一步拆分 Window/Short/Long 注意力、压缩器、Indexer、专家和缓存状态。
 - `dtype`：各种算子和张量的参数存储、激活/中间计算类型，以及 43 层逐层 dtype 与 Attention / Router 模式总表。
 - `Summary`：面向每 Rank 硬件配置的单次推理 FLOPs、目标 HBM 带宽、集合通信数据量和容量总览；单次推理 FLOPs 不按目标时延换算。
-- `Comparison`：一张统一的 TP1/TP8 资源对比表和五张图；一次推理的总 FLOPs 与单位显示在同一数量单元格中。
+- `Comparison`：一张统一的 TP1/TP8 资源对比表、总容量表和七张图；静态参数容量与推理常驻容量分别按 Prefill/Decode 展示；一次推理的总 FLOPs 与单位显示在同一数量单元格中。
 - `Layer_Config`：逐层调整 `window`、`short`、`long` 模式。
 - `Methodology`：中文统计口径与限制。
 

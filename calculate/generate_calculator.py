@@ -73,6 +73,7 @@ DISPLAY_LABELS = {
     "MoE parameter capacity": "混合专家参数容量",
     "Other parameter capacity": "其他参数容量",
     "Total parameter capacity": "总参数容量",
+    "Total resident capacity": "Total capacity per inference / rank",
     "Attention required HBM bandwidth": "注意力所需 HBM 带宽",
     "MoE required HBM bandwidth": "混合专家所需 HBM 带宽",
     "Other required HBM bandwidth": "其他所需 HBM 带宽",
@@ -3138,7 +3139,79 @@ class InferenceComparisonWriter(CalculatorWriter):
             raw_value = rows[table_row - table_first_row][1][raw_cols.index(raw_col)][1]
             return table_row, raw_col, divisor, raw_value
 
+        def write_chart_note(row: int, start_col: int, end_col: int, text: str) -> None:
+            ws.merge_range(row, start_col, row, end_col, text, self.formats["note"])
+            ws.set_row(row, 36)
+
+        def write_capacity_table(start_row: int, start_col: int) -> None:
+            end_col = start_col + 3
+            ws.merge_range(
+                start_row,
+                start_col,
+                start_row,
+                end_col,
+                "Total capacity per inference / rank",
+                self.formats["section"],
+            )
+            header_row = start_row + 1
+            ws.write_row(
+                header_row,
+                start_col,
+                ["Mode", "TP1", "TP8/rank", "Definition"],
+                self.formats["header"],
+            )
+            table_rows = (
+                (
+                    "Prefill",
+                    raw_cols[0],
+                    raw_cols[1],
+                    "Static parameters + Prefill MaxContext KV/State",
+                ),
+                (
+                    "Decode",
+                    raw_cols[2],
+                    raw_cols[3],
+                    "Static parameters + Decode MaxContext KV/State",
+                ),
+            )
+            table_raw_cols = (14, 15)
+            for offset, (mode, tp1_col, tp8_col, definition) in enumerate(table_rows):
+                row = header_row + 1 + offset
+                ws.write(row, start_col, mode, self.formats["text"])
+                for value_offset, source_col in enumerate((tp1_col, tp8_col), start=1):
+                    source_row, source_raw_col, _, value = source_for(
+                        "Total resident capacity", source_col, 1
+                    )
+                    source_ref = f"{xl_col_to_name(source_raw_col)}{source_row + 1}"
+                    self._write_human_value(
+                        ws,
+                        row,
+                        start_col + value_offset,
+                        start_col + value_offset,
+                        table_raw_cols[value_offset - 1],
+                        f"={source_ref}",
+                        value,
+                        "bytes",
+                    )
+                ws.write(row, end_col, definition, self.formats["text"])
+            ws.add_table(
+                header_row,
+                start_col,
+                header_row + len(table_rows),
+                end_col,
+                {
+                    "name": "Comparison_Total_Capacity",
+                    "style": "Table Style Medium 2",
+                    "columns": [
+                        {"header": header}
+                        for header in ["Mode", "TP1", "TP8/rank", "Definition"]
+                    ],
+                },
+            )
+
         anchor_row = table_last_row + 4
+        chart_row_step = 24
+        write_capacity_table(anchor_row - 1, 10)
         add_chart(
             "Total compute per inference / rank",
             f"A{anchor_row}",
@@ -3157,7 +3230,7 @@ class InferenceComparisonWriter(CalculatorWriter):
         )
         add_chart(
             "Prefill compute per rank",
-            f"A{anchor_row + 17}",
+            f"A{anchor_row + chart_row_step}",
             ["Attention", "MoE", "Other"],
             [
                 (
@@ -3180,7 +3253,7 @@ class InferenceComparisonWriter(CalculatorWriter):
         )
         add_chart(
             "Decode compute per rank",
-            f"E{anchor_row + 17}",
+            f"E{anchor_row + chart_row_step}",
             ["Attention", "MoE", "Other"],
             [
                 (
@@ -3203,22 +3276,30 @@ class InferenceComparisonWriter(CalculatorWriter):
             CHART_PAIR_X_OFFSET,
         )
         add_chart(
-            "Static parameter capacity per rank",
-            f"A{anchor_row + 34}",
+            "Prefill static parameter capacity per rank",
+            f"A{anchor_row + chart_row_step * 2}",
             ["Attention", "MoE", "Other"],
             [
                 (
                     "TP1 GB",
                     [
                         source_for(label, raw_cols[0], 1e9)
-                        for label in ("Attention parameter capacity", "MoE parameter capacity", "Other parameter capacity")
+                        for label in (
+                            "Attention parameter capacity",
+                            "MoE parameter capacity",
+                            "Other parameter capacity",
+                        )
                     ],
                 ),
                 (
                     "TP8 GB",
                     [
                         source_for(label, raw_cols[1], 1e9)
-                        for label in ("Attention parameter capacity", "MoE parameter capacity", "Other parameter capacity")
+                        for label in (
+                            "Attention parameter capacity",
+                            "MoE parameter capacity",
+                            "Other parameter capacity",
+                        )
                     ],
                 ),
             ],
@@ -3226,22 +3307,30 @@ class InferenceComparisonWriter(CalculatorWriter):
             '0.0" GB"',
         )
         add_chart(
-            "TP1 vs TP8: inference resident capacity per rank",
-            f"E{anchor_row + 34}",
-            ["Prefill", "Decode"],
+            "Decode static parameter capacity per rank",
+            f"E{anchor_row + chart_row_step * 2}",
+            ["Attention", "MoE", "Other"],
             [
                 (
                     "TP1 GB",
                     [
-                        source_for("Total resident capacity", raw_cols[0], 1e9),
-                        source_for("Total resident capacity", raw_cols[2], 1e9),
+                        source_for(label, raw_cols[2], 1e9)
+                        for label in (
+                            "Attention parameter capacity",
+                            "MoE parameter capacity",
+                            "Other parameter capacity",
+                        )
                     ],
                 ),
                 (
                     "TP8 GB",
                     [
-                        source_for("Total resident capacity", raw_cols[1], 1e9),
-                        source_for("Total resident capacity", raw_cols[3], 1e9),
+                        source_for(label, raw_cols[3], 1e9)
+                        for label in (
+                            "Attention parameter capacity",
+                            "MoE parameter capacity",
+                            "Other parameter capacity",
+                        )
                     ],
                 ),
             ],
@@ -3249,9 +3338,68 @@ class InferenceComparisonWriter(CalculatorWriter):
             '0.0" GB"',
             CHART_PAIR_X_OFFSET,
         )
+        write_chart_note(
+            anchor_row + chart_row_step * 2 + 17,
+            0,
+            3,
+            "具体内容（Static parameter capacity per rank）：Attention、MoE、Embedding、LM Head、Norm、HC 等静态模型参数及量化 Scale；不含 KV Cache、Compressor State、临时激活和集合通信缓冲区。Prefill/Decode 两图的静态参数数据相同。",
+        )
+        write_chart_note(
+            anchor_row + chart_row_step * 2 + 17,
+            4,
+            5,
+            "具体内容（Static parameter capacity per rank）：Attention、MoE、Embedding、LM Head、Norm、HC 等静态模型参数及量化 Scale；不含 KV Cache、Compressor State、临时激活和集合通信缓冲区。Prefill/Decode 两图的静态参数数据相同。",
+        )
+        add_chart(
+            "Prefill total capacity per inference\n/ rank",
+            f"A{anchor_row + chart_row_step * 3}",
+            ["TP1", "TP8/rank"],
+            [
+                (
+                    "Capacity GB",
+                    [
+                        source_for("Total resident capacity", raw_cols[0], 1e9),
+                        source_for("Total resident capacity", raw_cols[1], 1e9),
+                    ],
+                )
+            ],
+            "GB",
+            '0.0" GB"',
+        )
+        add_chart(
+            "Decode total capacity per inference\n/ rank",
+            f"E{anchor_row + chart_row_step * 3}",
+            ["TP1", "TP8/rank"],
+            [
+                (
+                    "Capacity GB",
+                    [
+                        source_for("Total resident capacity", raw_cols[2], 1e9),
+                        source_for("Total resident capacity", raw_cols[3], 1e9),
+                    ],
+                )
+            ],
+            "GB",
+            '0.0" GB"',
+            CHART_PAIR_X_OFFSET,
+        )
+        write_chart_note(
+            anchor_row + chart_row_step * 3 + 17,
+            0,
+            3,
+            "具体内容（Total capacity per inference / rank）：当前模式单 Rank 的静态参数容量 + 按 MaxContext 预分配的 KV Cache + Compressor State；不含临时激活、residual/HC workspace 和集合通信传输量。",
+        )
+        write_chart_note(
+            anchor_row + chart_row_step * 3 + 17,
+            4,
+            5,
+            "具体内容（Total capacity per inference / rank）：当前模式单 Rank 的静态参数容量 + 按 MaxContext 预分配的 KV Cache + Compressor State；不含临时激活、residual/HC workspace 和集合通信传输量。",
+        )
         ws.set_column("A:A", 30)
         ws.set_column("B:E", 20)
         ws.set_column("F:F", 72)
+        ws.set_column("K:N", 20)
+        ws.set_column(14, 15, None, None, {"hidden": True})
         ws.set_column(helper_start_col, helper_start_col + 2, None, None, {"hidden": True})
 
     def write_summary(self, memory: dict[str, float]) -> None:
@@ -3829,8 +3977,8 @@ def validate_baseline(
             for name in archive.namelist()
             if name.startswith("xl/charts/chart")
         ]
-        if len(chart_payloads) < 5:
-            raise AssertionError("Expected five readable comparison charts")
+        if len(chart_payloads) < 7:
+            raise AssertionError("Expected seven readable comparison charts")
         if any(b"logBase" in payload or b"0.000E" in payload for payload in chart_payloads):
             raise AssertionError("Charts must not use log axes or scientific formats")
         chart_namespace = {
