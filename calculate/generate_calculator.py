@@ -38,12 +38,6 @@ DISPLAY_LABELS = {
     "Attention 计算量": "注意力计算量",
     "MoE 计算量": "混合专家计算量",
     "Other 推理计算量": "其他推理计算量",
-    "Attention HBM 流量": "注意力 HBM 流量",
-    "MoE HBM 流量": "混合专家 HBM 流量",
-    "Other HBM 流量": "其他 HBM 流量",
-    "Attention 所需 HBM 带宽": "注意力所需 HBM 带宽",
-    "MoE 所需 HBM 带宽": "混合专家所需 HBM 带宽",
-    "Other 所需 HBM 带宽": "其他所需 HBM 带宽",
     "Attention 逻辑参数量": "注意力逻辑参数量",
     "MoE 逻辑参数量": "混合专家逻辑参数量",
     "Other 逻辑参数量": "其他逻辑参数量",
@@ -71,10 +65,17 @@ DISPLAY_LABELS = {
     "MoE major FLOPs": "混合专家主要 FLOPs",
     "Other inference FLOPs": "其他推理 FLOPs",
     "Total inference FLOPs": "总推理 FLOPs",
-    "Attention HBM traffic": "注意力 HBM 流量",
-    "MoE HBM traffic": "混合专家 HBM 流量",
-    "Other HBM traffic": "其他 HBM 流量",
-    "Total HBM traffic": "总 HBM 流量",
+    "Attention logical parameter count": "注意力逻辑参数量",
+    "MoE logical parameter count": "混合专家逻辑参数量",
+    "Other logical parameter count": "其他逻辑参数量",
+    "Total logical parameter count": "总逻辑参数量",
+    "Attention parameter capacity": "注意力参数容量",
+    "MoE parameter capacity": "混合专家参数容量",
+    "Other parameter capacity": "其他参数容量",
+    "Total parameter capacity": "总参数容量",
+    "Attention required HBM bandwidth": "注意力所需 HBM 带宽",
+    "MoE required HBM bandwidth": "混合专家所需 HBM 带宽",
+    "Other required HBM bandwidth": "其他所需 HBM 带宽",
     "Interconnect transfer": "卡间互连传输量",
     "Arithmetic intensity": "算术强度",
     "One-inference compute demand": "一次推理所需计算量",
@@ -1145,7 +1146,7 @@ def scenario_items(
             "=0",
             0,
             "Auxiliary",
-            "临时 BF16 residual/HC state 不重复计入 HBM 流量；驻留容量口径在场景汇总中单独说明。",
+            "临时 BF16 residual/HC state 不重复计入目标 HBM 带宽推导；驻留容量口径在场景汇总中单独说明。",
         )
     )
 
@@ -1503,7 +1504,7 @@ def annotate_scenario_items(
         "Short-compression KV compressor": (component_capacity("Short-compression KV compressors"), "FP32 Compressor parameters", "FP32 compression; BF16 KV output"),
         "Long-compression KV compressor": (component_capacity("Long-compression KV compressors"), "FP32 Compressor parameters", "FP32 compression; BF16 KV output"),
         "Indexer compressor projections": (component_capacity("Ratio-4 Indexer compressor"), "FP32 Indexer Compressor parameters", "FP32 compression; BF16 Indexer KV"),
-        "Router score projection": (component_capacity("Router and hash tables"), "BF16 gate + FP32 bias + INT32 hash table", "BF16 hidden; FP32 scores; INT32 indices"),
+        "Router score projection": (component_capacity("Router and hash tables"), "BF16 gate + FP32 bias + INT32 Token-ID lookup table", "BF16 hidden; FP32 scores; INT32 indices"),
         "Top-K routed experts": (component_capacity("Routed experts"), "FP4 E2M1 + E8M0 scales", "BF16 input/output; FP32 SwiGLU"),
         "Shared expert": (component_capacity("Shared experts"), "FP8 E4M3 + E8M0 scales", "BF16 input/output; FP32 SwiGLU"),
         "Hyper-Connections": (component_capacity("Hyper-Connections", "Tail HC head"), "FP32 HC parameters", "FP32 mixing; BF16 hidden and residual state"),
@@ -1742,9 +1743,11 @@ class CalculatorWriter:
             behavior_formula = f'=IF(B{row + 1}=0,"inactive",IF(C{row + 1}="window","raw sliding window",IF(C{row + 1}="short","compressed KV + Indexer Top-K","deterministic compressed KV")))'
             behavior = "inactive" if not active else "raw sliding window" if mode == "window" else "compressed KV + Indexer Top-K" if mode == "short" else "deterministic compressed KV"
             ws.write_formula(row, 4, behavior_formula, self.formats["text"], behavior)
-            routing_formula = f'=IF(B{row + 1}=0,"inactive",IF(A{row + 1}<HashLayers,"hash","score"))'
-            routing = "inactive" if not active else "hash" if index < self.p.hash_layers else "score"
+            routing_formula = f'=IF(B{row + 1}=0,"inactive",IF(A{row + 1}<HashLayers,"Token-ID lookup","score"))'
+            routing = "inactive" if not active else "Token-ID lookup" if index < self.p.hash_layers else "score"
             ws.write_formula(row, 5, routing_formula, self.formats["text"], routing)
+            if not active:
+                ws.set_row(row, None, None, {"hidden": True})
         ws.data_validation(3, 1, 3 + MAX_LAYER_ROWS - 1, 1, {"validate": "list", "source": [0, 1]})
         ws.data_validation(3, 2, 3 + MAX_LAYER_ROWS - 1, 2, {"validate": "list", "source": ["window", "short", "long"]})
         ws.autofilter(2, 0, 2 + MAX_LAYER_ROWS, 5)
@@ -2104,7 +2107,7 @@ class InferenceComparisonWriter(CalculatorWriter):
         ws.write(
             1,
             0,
-            "容量为单 Rank 资源；分类容量是静态参数，整网容量另含 MaxContext 预分配 KV/State。可见通信列为原始集合通信数据量，HBM 读写量保留在隐藏审计列。",
+            "容量为单 Rank 资源；分类容量是静态参数，整网容量另含 MaxContext 预分配 KV/State。可见通信列为原始集合通信数据量，底层 HBM 访问量仅保留在隐藏审计列中用于推导目标带宽。",
             self.formats["note"],
         )
         helper_end = self._write_scenario_helpers(ws, mode, prefix, helpers)
@@ -2117,7 +2120,7 @@ class InferenceComparisonWriter(CalculatorWriter):
             ("LM Head", "LM Head", "Model tail", "FP32", "FP32 logits", "词表维度按 TP 分片；Prefill 只计算最后一个 token 的 logits。"),
             ("Norm", "Norm", "Block norms + final norm", "FP32", "BF16 -> FP32 -> BF16", "含注意力 Sink 向量的参数容量。"),
             ("HC", "Hyper-Connections", "Block HC + tail HC head", "FP32", "FP32 mixing + BF16 hidden/residual", "含 block HC 和模型尾部 HC head。"),
-            ("residual", "residual", "HC state workspace", "N/A", "BF16 residual / HC state", "临时 workspace 不重复计入 HBM 和驻留容量。"),
+            ("residual", "residual", "HC state workspace", "N/A", "BF16 residual / HC state", "临时 workspace 不重复计入目标 HBM 带宽推导和驻留容量。"),
         ]
         summary_section = helper_end + 1
         summary_header = summary_section + 1
@@ -2471,8 +2474,8 @@ class InferenceComparisonWriter(CalculatorWriter):
             ("Ratio-4 layers", "Indexer projections and scoring", "wq_b FP8; weights_proj BF16", "QAT/FP4 simulated QKV; FP32 scoring", "仅 ratio-4 层启用 Indexer。"),
             ("All layers 0-42", "Routed experts w1/w2/w3", "FP4 E2M1 packed + FP8 E8M0 scale factors", "FP4 GEMM; SwiGLU FP32; output cast to BF16", "专家数据类型为 fp4；每个令牌激活 6 个路由专家。"),
             ("All layers 0-42", "Shared experts w1/w2/w3", "FP8 E4M3 + FP8 E8M0 scale factors", "FP8 GEMM; SwiGLU FP32", "每层 1 个共享专家，跨 TP Rank 复制。"),
-            ("All layers 0-42", "Router scores/routing weights", "FP32 bias; INT32 hash table", "FP32", "sqrt(softplus) 评分、Top-K 和归一化在 FP32 中完成。"),
-            ("Layers 0-2", "Hash routing table", "INT32", "INT32 indexing", "前 3 层使用令牌编号到专家编号的预计算路由。"),
+            ("All layers 0-42", "Router scores/routing weights", "FP32 bias; INT32 Token-ID lookup table", "FP32", "sqrt(softplus) 评分、Top-K 和归一化在 FP32 中完成；前 3 层使用 Token-ID 查表路由。"),
+            ("Layers 0-2", "Token-ID routing table", "INT32", "INT32 indexing", "前 3 层使用令牌编号到专家编号的预计算路由。"),
             ("All layers 0-42", "mHC parameters / attention sinks", "FP32", "FP32", "HC 混合、Sinkhorn 与 Sink 参数使用 FP32。"),
             ("All layers 0-42", "KV cache", "BF16", "BF16; partial non-RoPE dimensions simulated with FP8", "当前推理实现中的 KV 缓存为 BF16。"),
             ("Model tail", "Final normalization / HC head", "FP32 inference parameters", "FP32 compute, output cast to BF16", "最终 HC 归约与 RMSNorm。"),
@@ -2551,7 +2554,7 @@ class InferenceComparisonWriter(CalculatorWriter):
             else:
                 attention_mode = "Custom ratio"
             router_mode = (
-                "Hash routing (INT32)"
+                "Token-ID lookup routing (INT32)"
                 if layer_id < self.p.hash_layers
                 else "Score routing (FP32)"
             )
@@ -2600,11 +2603,11 @@ class InferenceComparisonWriter(CalculatorWriter):
             ("FLOPs", "矩阵乘加按 2 FLOPs 计。注意力与 MoE 主要 GEMM 使用显式公式；HC 与逐元素运算为近似估计。"),
             ("Prefill attention", "使用因果候选对数量，不直接使用 S×S；原始窗口、压缩 KV 和 Indexer 扫描分别统计。"),
             ("Decode attention", "每个解码令牌在解码上下文长度下建模；ratio-4 主注意力取 Top-K，但 Indexer 需要扫描全部已完成压缩项。"),
-            ("MoE", "每个令牌执行 Top-K 路由专家和共享专家。HBM 参数读取按专家至少被命中一次的概率估计。"),
-            ("HBM traffic", "统计本地逻辑参数、激活和 KV 的读取与写入；不模拟 L2 命中、算子融合、分块、Allocator 或厂商 Kernel 内部复用。"),
+            ("MoE", "每个令牌执行 Top-K 路由专家和共享专家；专家命中概率用于估算逻辑访问需求。"),
+            ("Required HBM bandwidth", "仅按目标时延推导所需 HBM 带宽，不把本地逻辑读写量作为独立可见统计；不模拟 L2 命中、算子融合、分块、Allocator 或厂商 Kernel 内部复用。"),
             ("Memory", "按推理运行 dtype 估算：路由专家 FP4、多数投影 FP8、Wo_a BF16、Compressor FP32、LM Head FP32，并计入量化 Scale。"),
-            ("Scenario tables", "Prefill_8K 和 Decode_1M 各含两张表：整网资源汇总与典型层/模块明细；两张表共享 TP1/TP8 的容量、算力、集合通信数据量、参数类型和激活类型列；HBM 读写量保留在隐藏审计列。"),
-            ("Resource categories", "汇总分类为 Attention、MoE、Embedding、LM Head、Norm、HC、residual；residual 是 BF16/HC state 工作区，不重复计入驻留容量或 HBM 流量。"),
+            ("Scenario tables", "Prefill_8K 和 Decode_1M 各含两张表：整网资源汇总与典型层/模块明细；两张表共享 TP1/TP8 的容量、算力、集合通信数据量、参数类型和激活类型列；底层 HBM 访问量仅保留在隐藏审计列中用于推导目标带宽。"),
+            ("Resource categories", "汇总分类为 Attention、MoE、Embedding、LM Head、Norm、HC、residual；residual 是 BF16/HC state 工作区，不重复计入驻留容量或目标 HBM 带宽推导。"),
             ("KV cache", "有效容量表示已填充项；预分配容量使用 MaxContext。当前实现的 KV 和 Compressor 状态在每个 TP Rank 上完整复制。"),
             ("TP", "Wq_a、Wkv、Compressor、Router、HC、共享专家复制；Q/O 部分投影、路由专家、Embedding 和 LM Head 按 TP 分片。"),
             ("Communication", "Ring 公式给出每 Rank 发送加接收的数据量。TP1 为 0；该数值是传输量，不是实测 GB/s 或时延。"),
@@ -2626,7 +2629,7 @@ class InferenceComparisonWriter(CalculatorWriter):
         ws.write(
             1,
             0,
-            "计算量、HBM、参数、缓存与驻留容量集中在一张资源表；隐藏列保留公式原值和图表缩放源。",
+            "计算量、目标 HBM 带宽、参数、缓存、驻留容量与集合通信量集中在一张资源表；隐藏列保留底层访问公式和图表缩放源。",
             self.formats["note"],
         )
 
@@ -2760,33 +2763,6 @@ class InferenceComparisonWriter(CalculatorWriter):
                     (scenario_ref("DC", "TP8", source_label), values[3], "flops"),
                 ],
                 "单次预填充或解码步骤的每 Rank 逻辑 FLOPs。",
-                category == "Total",
-            )
-
-        for label, source_label, category in (
-            ("Attention HBM traffic", "Attention HBM traffic", "Attention"),
-            ("MoE HBM traffic", "MoE HBM traffic", "MoE"),
-            ("Other HBM traffic", "Other HBM traffic", "Other"),
-            ("Total HBM traffic", "Total HBM traffic", "Total"),
-        ):
-            values = tuple(
-                (
-                    summary["total_hbm_read_bytes_per_rank"]
-                    + summary["total_hbm_write_bytes_per_rank"]
-                    if category == "Total"
-                    else category_hbm(summary, category)
-                )
-                for summary in (pf1, pf8, dc1, dc8)
-            )
-            add_row(
-                label,
-                [
-                    (scenario_ref("PF", "TP1", source_label), values[0], "bytes"),
-                    (scenario_ref("PF", "TP8", source_label), values[1], "bytes"),
-                    (scenario_ref("DC", "TP1", source_label), values[2], "bytes"),
-                    (scenario_ref("DC", "TP8", source_label), values[3], "bytes"),
-                ],
-                "本地逻辑 HBM 读写量，不含缓存复用和算子融合。",
                 category == "Total",
             )
 
@@ -3227,55 +3203,8 @@ class InferenceComparisonWriter(CalculatorWriter):
             CHART_PAIR_X_OFFSET,
         )
         add_chart(
-            "Prefill HBM traffic per rank",
-            f"A{anchor_row + 34}",
-            ["Attention", "MoE", "Other"],
-            [
-                (
-                    "TP1 GB",
-                    [
-                        source_for(label, raw_cols[0], 1e9)
-                        for label in ("Attention HBM traffic", "MoE HBM traffic", "Other HBM traffic")
-                    ],
-                ),
-                (
-                    "TP8 GB",
-                    [
-                        source_for(label, raw_cols[1], 1e9)
-                        for label in ("Attention HBM traffic", "MoE HBM traffic", "Other HBM traffic")
-                    ],
-                ),
-            ],
-            "GB",
-            '0.0" GB"',
-        )
-        add_chart(
-            "Decode HBM traffic per rank",
-            f"E{anchor_row + 34}",
-            ["Attention", "MoE", "Other"],
-            [
-                (
-                    "TP1 GB",
-                    [
-                        source_for(label, raw_cols[2], 1e9)
-                        for label in ("Attention HBM traffic", "MoE HBM traffic", "Other HBM traffic")
-                    ],
-                ),
-                (
-                    "TP8 GB",
-                    [
-                        source_for(label, raw_cols[3], 1e9)
-                        for label in ("Attention HBM traffic", "MoE HBM traffic", "Other HBM traffic")
-                    ],
-                ),
-            ],
-            "GB",
-            '0.0" GB"',
-            CHART_PAIR_X_OFFSET,
-        )
-        add_chart(
             "Static parameter capacity per rank",
-            f"A{anchor_row + 51}",
+            f"A{anchor_row + 34}",
             ["Attention", "MoE", "Other"],
             [
                 (
@@ -3298,7 +3227,7 @@ class InferenceComparisonWriter(CalculatorWriter):
         )
         add_chart(
             "TP1 vs TP8: inference resident capacity per rank",
-            f"E{anchor_row + 51}",
+            f"E{anchor_row + 34}",
             ["Prefill", "Decode"],
             [
                 (
@@ -3460,34 +3389,6 @@ class InferenceComparisonWriter(CalculatorWriter):
                         (scenario_ref("DC", tp, source_label), values[1]),
                         "flops",
                         "单次推理调用的单 Rank 计算量。",
-                    )
-                )
-
-            for label, source_label, category in (
-                ("Attention HBM traffic", "Attention HBM traffic", "Attention"),
-                ("MoE HBM traffic", "MoE HBM traffic", "MoE"),
-                ("Other HBM traffic", "Other HBM traffic", "Other"),
-                ("Total HBM traffic", "Total HBM traffic", "Total"),
-            ):
-                if category == "Total":
-                    values = (
-                        prefill_summary["total_hbm_read_bytes_per_rank"]
-                        + prefill_summary["total_hbm_write_bytes_per_rank"],
-                        decode_summary["total_hbm_read_bytes_per_rank"]
-                        + decode_summary["total_hbm_write_bytes_per_rank"],
-                    )
-                else:
-                    values = (
-                        category_hbm(prefill_summary, category),
-                        category_hbm(decode_summary, category),
-                    )
-                specs.append(
-                    (
-                        label,
-                        (scenario_ref("PF", tp, source_label), values[0]),
-                        (scenario_ref("DC", tp, source_label), values[1]),
-                        "bytes",
-                        "本地逻辑 HBM 读写量，不含缓存复用。",
                     )
                 )
 
@@ -3712,18 +3613,37 @@ def write_reports(
     decode_tp1 = summarize_items(decode_items)
     prefill_tp8 = summarize_items(scenario_items(p_tp8, layers, "prefill")[0])
     decode_tp8 = summarize_items(scenario_items(p_tp8, layers, "decode")[0])
+
+    def public_summary(summary: dict[str, Any]) -> dict[str, Any]:
+        return {
+            key: (
+                {
+                    category: {
+                        metric: value
+                        for metric, value in metrics.items()
+                        if not metric.startswith("hbm_")
+                    }
+                    for category, metrics in value.items()
+                }
+                if key == "categories"
+                else value
+            )
+            for key, value in summary.items()
+            if not key.startswith("total_hbm_")
+        }
+
     report = {
         "model": "DeepSeek-V4-Flash",
         "scope": "仅主推理路径；不含 MTP、反向传播、梯度和优化器",
         "inputs": p.__dict__,
         "layer_counts": layers.__dict__,
         "prefill_8k": {
-            "tp1_per_rank": prefill_tp1,
-            "tp8_per_rank": prefill_tp8,
+            "tp1_per_rank": public_summary(prefill_tp1),
+            "tp8_per_rank": public_summary(prefill_tp8),
         },
         "decode_1m": {
-            "tp1_per_rank": decode_tp1,
-            "tp8_per_rank": decode_tp8,
+            "tp1_per_rank": public_summary(decode_tp1),
+            "tp8_per_rank": public_summary(decode_tp8),
         },
         "memory": memory,
     }
@@ -3737,13 +3657,6 @@ def write_reports(
     def gb(value: float) -> str:
         return f"{value / 1e9:,.3f} GB"
 
-    def category_hbm(summary: dict[str, Any], category: str) -> str:
-        values = summary["categories"][category]
-        return gb(
-            values["hbm_read_bytes_per_rank"]
-            + values["hbm_write_bytes_per_rank"]
-        )
-
     markdown = [
         "# DeepSeek V4 Flash TP1 / TP8 推理基准",
         "",
@@ -3755,16 +3668,14 @@ def write_reports(
         f"- 层数：`{layers.total}` = window `{layers.window}` + short `{layers.short}` + long `{layers.long}`",
         "- MAC = 2 FLOPs；仅推理，不含 MTP/训练算子。",
         "",
-        "## 每 Rank 计算量与 HBM",
+        "## 每 Rank 计算量与集合通信",
         "",
         "| 指标 | Prefill TP1 | Prefill TP8/rank | Decode TP1 | Decode TP8/rank |",
         "|---|---:|---:|---:|---:|",
         f"| Attention FLOPs | {tf(prefill_tp1['attention_major_flops_per_rank'])} | {tf(prefill_tp8['attention_major_flops_per_rank'])} | {tf(decode_tp1['attention_major_flops_per_rank'])} | {tf(decode_tp8['attention_major_flops_per_rank'])} |",
         f"| MoE FLOPs | {tf(prefill_tp1['moe_major_flops_per_rank'])} | {tf(prefill_tp8['moe_major_flops_per_rank'])} | {tf(decode_tp1['moe_major_flops_per_rank'])} | {tf(decode_tp8['moe_major_flops_per_rank'])} |",
         f"| 总 FLOPs | {tf(prefill_tp1['total_per_rank_flops'])} | {tf(prefill_tp8['total_per_rank_flops'])} | {tf(decode_tp1['total_per_rank_flops'])} | {tf(decode_tp8['total_per_rank_flops'])} |",
-        f"| Attention HBM | {category_hbm(prefill_tp1, 'Attention')} | {category_hbm(prefill_tp8, 'Attention')} | {category_hbm(decode_tp1, 'Attention')} | {category_hbm(decode_tp8, 'Attention')} |",
-        f"| MoE HBM | {category_hbm(prefill_tp1, 'MoE')} | {category_hbm(prefill_tp8, 'MoE')} | {category_hbm(decode_tp1, 'MoE')} | {category_hbm(decode_tp8, 'MoE')} |",
-        f"| Other HBM | {category_hbm(prefill_tp1, 'Other')} | {category_hbm(prefill_tp8, 'Other')} | {category_hbm(decode_tp1, 'Other')} | {category_hbm(decode_tp8, 'Other')} |",
+        f"| 集合通信传输量 | {gb(prefill_tp1['total_interconnect_bytes_per_rank'])} | {gb(prefill_tp8['total_interconnect_bytes_per_rank'])} | {gb(decode_tp1['total_interconnect_bytes_per_rank'])} | {gb(decode_tp8['total_interconnect_bytes_per_rank'])} |",
         "",
         "## 每 Rank 容量",
         "",
@@ -3918,8 +3829,8 @@ def validate_baseline(
             for name in archive.namelist()
             if name.startswith("xl/charts/chart")
         ]
-        if len(chart_payloads) < 7:
-            raise AssertionError("Expected seven readable comparison charts")
+        if len(chart_payloads) < 5:
+            raise AssertionError("Expected five readable comparison charts")
         if any(b"logBase" in payload or b"0.000E" in payload for payload in chart_payloads):
             raise AssertionError("Charts must not use log axes or scientific formats")
         chart_namespace = {

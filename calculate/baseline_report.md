@@ -8,16 +8,14 @@
 - 层数：`43` = window `2` + short `21` + long `20`
 - MAC = 2 FLOPs；仅推理，不含 MTP/训练算子。
 
-## 每 Rank 计算量与 HBM
+## 每 Rank 计算量与集合通信
 
 | 指标 | Prefill TP1 | Prefill TP8/rank | Decode TP1 | Decode TP8/rank |
 |---|---:|---:|---:|---:|
 | Attention FLOPs | 102.836 TFLOPs | 23.172 TFLOPs | 0.124 TFLOPs | 0.019 TFLOPs |
 | MoE FLOPs | 124.846 TFLOPs | 31.766 TFLOPs | 0.015 TFLOPs | 0.004 TFLOPs |
 | 总 FLOPs | 228.398 TFLOPs | 55.653 TFLOPs | 0.140 TFLOPs | 0.024 TFLOPs |
-| Attention HBM | 358.038 GB | 231.532 GB | 10.492 GB | 4.035 GB |
-| MoE HBM | 191.989 GB | 32.915 GB | 4.627 GB | 1.605 GB |
-| Other HBM | 106.744 GB | 104.891 GB | 2.269 GB | 0.415 GB |
+| 集合通信传输量 | 0.000 GB | 40.635 GB | 0.000 GB | 0.006 GB |
 
 ## 每 Rank 容量
 
