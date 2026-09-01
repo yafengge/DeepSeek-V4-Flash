@@ -2372,23 +2372,23 @@ class InferenceComparisonWriter(CalculatorWriter):
 
     def write_dtype(self) -> None:
         dtype_rows = [
-            ("Global config", "torch_dtype / main activations", "BF16", "BF16", "config.json 的 torch_dtype=bfloat16；隐藏状态与残差主路径使用 BF16。"),
-            ("Global config", "Standard quantized linear layers", "FP8 E4M3 + FP8 E8M0 scale factors", "Dynamic FP8 activation quantization", "quantization_config：quant_method=fp8，fmt=e4m3，scale_fmt=ue8m0。"),
-            ("All layers 0-42", "Main attention projections wq_a/wq_b/wkv/wo_b", "FP8 E4M3 + FP8 E8M0 scale factors", "FP8 GEMM; BF16 input dynamically quantized", "大多数注意力线性权重。"),
-            ("All layers 0-42", "Attention output projection wo_a", "BF16", "BF16 tensor product (einsum)", "检查点中为 FP8，转换后在推理实现中按 BF16 使用。"),
-            ("All layers 0-42", "RMSNorm weights and normalization", "BF16 weights; FP32 implementation parameters", "FP32 compute, output cast to BF16", "Norm 计算先转 FP32 以提高稳定性。"),
-            ("Ratio-4 / ratio-128 layers", "Main Compressor wkv/wgate/ape", "Checkpoint mainly BF16; FP32 implementation parameters", "FP32 compression/softmax", "Compressor 参数在推理实现中提升到 FP32。"),
-            ("Ratio-4 layers", "Indexer projections and scoring", "wq_b FP8; weights_proj BF16", "QAT/FP4 simulated QKV; FP32 scoring", "仅 ratio-4 层启用 Indexer。"),
-            ("All layers 0-42", "Routed experts w1/w2/w3", "FP4 E2M1 packed + FP8 E8M0 scale factors", "FP4 GEMM; SwiGLU FP32; output cast to BF16", "专家数据类型为 fp4；每个令牌激活 6 个路由专家。"),
-            ("All layers 0-42", "Shared experts w1/w2/w3", "FP8 E4M3 + FP8 E8M0 scale factors", "FP8 GEMM; SwiGLU FP32", "每层 1 个共享专家，跨 TP Rank 复制。"),
-            ("All layers 0-42", "Router scores/routing weights", "FP32 bias; INT32 Token-ID lookup table", "FP32", "sqrt(softplus) 评分、Top-K 和归一化在 FP32 中完成；前 3 层使用 Token-ID 查表路由。"),
-            ("Layers 0-2", "Token-ID routing table", "INT32", "INT32 indexing", "前 3 层使用令牌编号到专家编号的预计算路由。"),
-            ("All layers 0-42", "mHC parameters / attention sinks", "FP32", "FP32", "HC 混合、Sinkhorn 与 Sink 参数使用 FP32。"),
-            ("All layers 0-42", "KV cache", "BF16", "BF16; partial non-RoPE dimensions simulated with FP8", "当前推理实现中的 KV 缓存为 BF16。"),
-            ("Model tail", "Final normalization / HC head", "FP32 inference parameters", "FP32 compute, output cast to BF16", "最终 HC 归约与 RMSNorm。"),
-            ("Model tail", "LM head / Logits", "Checkpoint BF16; FP32 implementation parameters", "FP32 linear layer and Logits", "词表并行；Logits 以 FP32 计算。"),
+            ("Global config", "torch_dtype / main activations", "BF16", "N/A", "BF16", "config.json 的 torch_dtype=bfloat16；隐藏状态与残差主路径使用 BF16。"),
+            ("Global config", "Standard quantized linear layers", "FP8 E4M3 weights", "UE8M0 (E8M0), unsigned exponent-only scale", "Dynamic FP8 activation quantization", "quantization_config：quant_method=fp8，fmt=e4m3，scale_fmt=ue8m0。"),
+            ("All layers 0-42", "Main attention projections wq_a/wq_b/wkv/wo_b", "FP8 E4M3 weights", "UE8M0 (E8M0), unsigned exponent-only scale", "FP8 GEMM; BF16 input dynamically quantized", "wq_a/wq_b/wkv/wo_b 的权重为 FP8 E4M3；Scale 为无符号 UE8M0/E8M0。"),
+            ("All layers 0-42", "Attention output projection wo_a", "BF16 inference weights (checkpoint FP8 converted)", "N/A (BF16 inference weights)", "BF16 tensor product (einsum)", "wo_a 不按 FP8 权重使用；检查点中的 FP8 tensor 在推理实现中转换并按 BF16 使用。"),
+            ("All layers 0-42", "RMSNorm weights and normalization", "BF16 weights; FP32 implementation parameters", "N/A", "FP32 compute, output cast to BF16", "Norm 计算先转 FP32 以提高稳定性。"),
+            ("All layers 0-42", "Shared experts w1/w2/w3", "FP8 E4M3 weights", "UE8M0 (E8M0), unsigned exponent-only scale", "FP8 GEMM; SwiGLU FP32", "每层 1 个共享专家，跨 TP Rank 复制。"),
+            ("All layers 0-42", "Router scores/routing weights", "FP32 bias; INT32 Token-ID lookup table", "N/A", "FP32", "sqrt(softplus) 评分、Top-K 和归一化在 FP32 中完成；前 3 层使用 Token-ID 查表路由。"),
+            ("All layers 0-42", "Routed experts w1/w2/w3", "FP4 E2M1 packed weights", "UE8M0 (E8M0), unsigned exponent-only scale", "FP4 GEMM; SwiGLU FP32; output cast to BF16", "专家权重数据类型为 FP4 E2M1；每个令牌激活 6 个路由专家。"),
+            ("All layers 0-42", "mHC parameters / attention sinks", "FP32", "N/A", "FP32", "HC 混合、Sinkhorn 与 Sink 参数使用 FP32。"),
+            ("All layers 0-42", "KV cache (main + Indexer)", "BF16 unquantized", "N/A (unquantized cache)", "BF16 cache entries", "KV cache 类型为未量化 BF16；主 KV 与 Indexer KV 均使用 BF16，局部非 RoPE 维度的 FP8 仅是计算模拟，不改变缓存存储类型。"),
+            ("Layers 0-2", "Token-ID routing table", "INT32", "N/A", "INT32 indexing", "前 3 层使用令牌编号到专家编号的预计算路由。"),
+            ("Ratio-4 layers", "Indexer projections and scoring", "wq_b FP8; weights_proj BF16", "wq_b: UE8M0 (E8M0); weights_proj: N/A", "QAT/FP4 simulated QKV; FP32 scoring", "仅 ratio-4 层启用 Indexer。"),
+            ("Ratio-4 / ratio-128 layers", "Main Compressor wkv/wgate/ape", "Checkpoint mainly BF16; FP32 implementation parameters", "N/A", "FP32 compression/softmax", "Compressor 参数在推理实现中提升到 FP32。"),
+            ("Model tail", "Final normalization / HC head", "FP32 inference parameters", "N/A", "FP32 compute, output cast to BF16", "最终 HC 归约与 RMSNorm。"),
+            ("Model tail", "LM head / Logits", "Checkpoint BF16; FP32 implementation parameters", "N/A", "FP32 linear layer and Logits", "词表并行；Logits 以 FP32 计算。"),
         ]
-        module_headers = ["Scope", "Module/tensor", "Checkpoint/parameter storage", "Activation/intermediate computation", "Notes"]
+        module_headers = ["Scope", "Module/tensor", "Parameter storage / inference dtype", "Scale type", "Activation/intermediate computation", "Notes"]
         layer_headers = [
             "Layer ID",
             "Attention mode",
@@ -2407,7 +2407,7 @@ class InferenceComparisonWriter(CalculatorWriter):
         ws.write(
             1,
             0,
-            "集中记录各算子模块的参数存储、激活类型和逐层注意力/路由模式。",
+            "集中记录各算子模块的参数存储、Scale 类型、激活类型和逐层注意力/路由模式。",
             self.formats["note"],
         )
 
@@ -2416,7 +2416,7 @@ class InferenceComparisonWriter(CalculatorWriter):
             module_section,
             0,
             module_section,
-            4,
+            5,
             "Data types (dtype): module-level storage and compute types",
             self.formats["section"],
         )
@@ -2474,7 +2474,7 @@ class InferenceComparisonWriter(CalculatorWriter):
                     ratio,
                     router_mode,
                     "BF16",
-                    "FP8 E4M3; wo_a BF16",
+                    "wq_a/wq_b/wkv/wo_b: FP8 E4M3 weights; wo_a: BF16 inference weights",
                     "FP4 E2M1",
                     "FP8 E4M3",
                     "FP32",
@@ -2494,9 +2494,11 @@ class InferenceComparisonWriter(CalculatorWriter):
         )
         ws.set_column("A:A", 20)
         ws.set_column("B:B", 34)
-        ws.set_column("C:C", 20)
-        ws.set_column("D:D", 28)
-        ws.set_column("E:I", 24)
+        ws.set_column("C:C", 36)
+        ws.set_column("D:D", 32)
+        ws.set_column("E:E", 34)
+        ws.set_column("F:F", 66)
+        ws.set_column("G:I", 24)
 
     def write_memory(self) -> dict[str, float]:
         return self._calculate_memory_totals()
@@ -2736,6 +2738,36 @@ class InferenceComparisonWriter(CalculatorWriter):
                 "KV 与 Compressor 状态在当前实现中每个 TP Rank 复制。",
             )
 
+        def effective_cache_ref(tp: str, mode: str) -> str:
+            prefix = "Prefill" if mode == "prefill" else "Decode"
+            return "+".join(
+                memory_ref(tp, f"{prefix} {label}")
+                for label in ("effective main KV", "effective Indexer KV", "compressor states")
+            )
+
+        effective_cache_values = {
+            "prefill": (
+                cache_number("Prefill effective main KV", "prefill")
+                + cache_number("Prefill effective Indexer KV", "prefill")
+                + cache_number("Prefill compressor states", "prefill"),
+            ),
+            "decode": (
+                cache_number("Decode effective main KV", "decode")
+                + cache_number("Decode effective Indexer KV", "decode")
+                + cache_number("Decode compressor states", "decode"),
+            ),
+        }
+        add_row(
+            "Effective KV cache + state",
+            [
+                (f"={effective_cache_ref('TP1', 'prefill')}", effective_cache_values["prefill"][0], "bytes"),
+                (f"={effective_cache_ref('TP8', 'prefill')}", effective_cache_values["prefill"][0], "bytes"),
+                (f"={effective_cache_ref('TP1', 'decode')}", effective_cache_values["decode"][0], "bytes"),
+                (f"={effective_cache_ref('TP8', 'decode')}", effective_cache_values["decode"][0], "bytes"),
+            ],
+            "当前场景有效 KV；包含主 KV、Indexer KV 和 Compressor/Indexer State。",
+        )
+
         resident_values = (
             memory["tp1_parameter_total"] + memory["prefill_allocated_cache"],
             memory["tp8_parameter_total"] + memory["prefill_allocated_cache"],
@@ -2930,75 +2962,8 @@ class InferenceComparisonWriter(CalculatorWriter):
             ws.merge_range(row, start_col, row, end_col, text, self.formats["note"])
             ws.set_row(row, 36)
 
-        def write_capacity_table(start_row: int, start_col: int) -> None:
-            end_col = start_col + 3
-            ws.merge_range(
-                start_row,
-                start_col,
-                start_row,
-                end_col,
-                "Total capacity per inference / rank",
-                self.formats["section"],
-            )
-            header_row = start_row + 1
-            ws.write_row(
-                header_row,
-                start_col,
-                ["Mode", "TP1", "TP8/rank", "Definition"],
-                self.formats["header"],
-            )
-            table_rows = (
-                (
-                    "Prefill",
-                    raw_cols[0],
-                    raw_cols[1],
-                    "Static parameters + Prefill MaxContext KV/State",
-                ),
-                (
-                    "Decode",
-                    raw_cols[2],
-                    raw_cols[3],
-                    "Static parameters + Decode MaxContext KV/State",
-                ),
-            )
-            table_raw_cols = (14, 15)
-            for offset, (mode, tp1_col, tp8_col, definition) in enumerate(table_rows):
-                row = header_row + 1 + offset
-                ws.write(row, start_col, mode, self.formats["text"])
-                for value_offset, source_col in enumerate((tp1_col, tp8_col), start=1):
-                    source_row, source_raw_col, _, value = source_for(
-                        "Total resident capacity", source_col, 1
-                    )
-                    source_ref = f"{xl_col_to_name(source_raw_col)}{source_row + 1}"
-                    self._write_human_value(
-                        ws,
-                        row,
-                        start_col + value_offset,
-                        start_col + value_offset,
-                        table_raw_cols[value_offset - 1],
-                        f"={source_ref}",
-                        value,
-                        "bytes",
-                    )
-                ws.write(row, end_col, definition, self.formats["text"])
-            ws.add_table(
-                header_row,
-                start_col,
-                header_row + len(table_rows),
-                end_col,
-                {
-                    "name": "Comparison_Total_Capacity",
-                    "style": "Table Style Medium 2",
-                    "columns": [
-                        {"header": header}
-                        for header in ["Mode", "TP1", "TP8/rank", "Definition"]
-                    ],
-                },
-            )
-
         anchor_row = table_last_row + 4
         chart_row_step = 24
-        write_capacity_table(anchor_row - 1, 10)
         add_chart(
             "Total compute per inference / rank",
             f"A{anchor_row}",
@@ -3014,6 +2979,23 @@ class InferenceComparisonWriter(CalculatorWriter):
             ],
             "TFLOPs",
             '0.0" TFLOPs"',
+        )
+        add_chart(
+            "Total capacity per inference\n/ rank",
+            f"E{anchor_row}",
+            ["Prefill TP1", "Prefill TP8", "Decode TP1", "Decode TP8"],
+            [
+                (
+                    "Capacity GB",
+                    [
+                        source_for("Total resident capacity", raw_col, 1e9)
+                        for raw_col in raw_cols
+                    ],
+                )
+            ],
+            "GB",
+            '0.0" GB"',
+            CHART_PAIR_X_OFFSET,
         )
         add_chart(
             "Prefill compute per rank",
@@ -3138,33 +3120,63 @@ class InferenceComparisonWriter(CalculatorWriter):
             "具体内容（Static parameter capacity per rank）：Attention、MoE、Embedding、LM Head、Norm、HC 等静态模型参数及量化 Scale；不含 KV Cache、Compressor State、临时激活和集合通信缓冲区。Prefill/Decode 两图的静态参数数据相同。",
         )
         add_chart(
-            "Prefill total capacity per inference\n/ rank",
+            "Prefill capacity components per rank",
             f"A{anchor_row + chart_row_step * 3}",
-            ["TP1", "TP8/rank"],
+            ["Attention static parameter", "MoE static parameter", "KV cache"],
             [
                 (
-                    "Capacity GB",
+                    "TP1 GB",
                     [
-                        source_for("Total resident capacity", raw_cols[0], 1e9),
-                        source_for("Total resident capacity", raw_cols[1], 1e9),
+                        source_for(label, raw_cols[0], 1e9)
+                        for label in (
+                            "Attention parameter capacity",
+                            "MoE parameter capacity",
+                            "Effective KV cache + state",
+                        )
                     ],
-                )
+                ),
+                (
+                    "TP8 GB",
+                    [
+                        source_for(label, raw_cols[1], 1e9)
+                        for label in (
+                            "Attention parameter capacity",
+                            "MoE parameter capacity",
+                            "Effective KV cache + state",
+                        )
+                    ],
+                ),
             ],
             "GB",
             '0.0" GB"',
         )
         add_chart(
-            "Decode total capacity per inference\n/ rank",
+            "Decode capacity components per rank",
             f"E{anchor_row + chart_row_step * 3}",
-            ["TP1", "TP8/rank"],
+            ["Attention static parameter", "MoE static parameter", "KV cache"],
             [
                 (
-                    "Capacity GB",
+                    "TP1 GB",
                     [
-                        source_for("Total resident capacity", raw_cols[2], 1e9),
-                        source_for("Total resident capacity", raw_cols[3], 1e9),
+                        source_for(label, raw_cols[2], 1e9)
+                        for label in (
+                            "Attention parameter capacity",
+                            "MoE parameter capacity",
+                            "Effective KV cache + state",
+                        )
                     ],
-                )
+                ),
+                (
+                    "TP8 GB",
+                    [
+                        source_for(label, raw_cols[3], 1e9)
+                        for label in (
+                            "Attention parameter capacity",
+                            "MoE parameter capacity",
+                            "Effective KV cache + state",
+                        )
+                    ],
+                ),
             ],
             "GB",
             '0.0" GB"',
@@ -3174,19 +3186,33 @@ class InferenceComparisonWriter(CalculatorWriter):
             anchor_row + chart_row_step * 3 + 17,
             0,
             3,
-            "具体内容（Total capacity per inference / rank）：当前模式单 Rank 的静态参数容量 + 按 MaxContext 预分配的 KV Cache + Compressor State；不含临时激活、residual/HC workspace 和集合通信传输量。",
+            "具体内容（Prefill capacity components per rank）：横向展示 Attention 静态参数、MoE 静态参数和当前 8K 输入对应的有效 KV cache；KV cache 含 Indexer KV 与 Compressor/Indexer State，Other 静态参数未在图中展示。",
         )
         write_chart_note(
             anchor_row + chart_row_step * 3 + 17,
             4,
             5,
-            "具体内容（Total capacity per inference / rank）：当前模式单 Rank 的静态参数容量 + 按 MaxContext 预分配的 KV Cache + Compressor State；不含临时激活、residual/HC workspace 和集合通信传输量。",
+            "具体内容（Decode capacity components per rank）：横向展示 Attention 静态参数、MoE 静态参数和 1M 上下文对应的有效 KV cache；KV cache 含 Indexer KV 与 Compressor/Indexer State，Other 静态参数未在图中展示。",
+        )
+        add_chart(
+            "Total communication per inference\n/ rank",
+            f"A{anchor_row + chart_row_step * 4}",
+            ["Prefill TP1", "Prefill TP8", "Decode TP1", "Decode TP8"],
+            [
+                (
+                    "Communication GB",
+                    [
+                        source_for("Interconnect transfer", raw_col, 1e9)
+                        for raw_col in raw_cols
+                    ],
+                )
+            ],
+            "GB",
+            '0.0" GB"',
         )
         ws.set_column("A:A", 30)
         ws.set_column("B:E", 20)
         ws.set_column("F:F", 72)
-        ws.set_column("K:N", 20)
-        ws.set_column(14, 15, None, None, {"hidden": True})
         ws.set_column(helper_start_col, helper_start_col + 2, None, None, {"hidden": True})
 
     def write_summary(self, memory: dict[str, float]) -> None:
@@ -3712,8 +3738,8 @@ def validate_baseline(
             for name in archive.namelist()
             if name.startswith("xl/charts/chart")
         ]
-        if len(chart_payloads) < 7:
-            raise AssertionError("Expected seven readable comparison charts")
+        if len(chart_payloads) != 9:
+            raise AssertionError("Expected nine readable comparison charts")
         if any(b"logBase" in payload or b"0.000E" in payload for payload in chart_payloads):
             raise AssertionError("Charts must not use log axes or scientific formats")
         chart_namespace = {
@@ -3777,6 +3803,8 @@ def validate_baseline(
             embedded_tables.add(table_name)
             if candidate.attrib.get("name") == "Comparison_Resource_Overview":
                 comparison_tables.append(candidate)
+        if "Comparison_Total_Capacity" in embedded_tables:
+            raise AssertionError("Comparison total capacity table must be replaced by a chart")
         if len(comparison_tables) != 1:
             raise AssertionError("Comparison must contain exactly one resource table")
         comparison_headers = [
@@ -3813,6 +3841,27 @@ def validate_baseline(
         }
         if not expected_embedded_tables.issubset(embedded_tables):
             raise AssertionError("Missing typed scenario or Comparison tables")
+        dtype_tables = [
+            ET.fromstring(archive.read(name))
+            for name in archive.namelist()
+            if name.startswith("xl/tables/table")
+            and ET.fromstring(archive.read(name)).attrib.get("name") == "DType_Module"
+        ]
+        if len(dtype_tables) != 1:
+            raise AssertionError("dtype must contain exactly one module table")
+        dtype_headers = [
+            column.attrib.get("name", "")
+            for column in dtype_tables[0].findall("{*}tableColumns/{*}tableColumn")
+        ]
+        if dtype_headers != [
+            "Scope",
+            "Module/tensor",
+            "Parameter storage / inference dtype",
+            "Scale type",
+            "Activation/intermediate computation",
+            "Notes",
+        ]:
+            raise AssertionError("dtype module table must expose a separate Scale type column")
         for prefix in ("PF", "DC"):
             scenario_tables = [
                 ET.fromstring(archive.read(name))

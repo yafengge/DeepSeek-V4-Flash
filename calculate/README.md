@@ -21,9 +21,9 @@ $HOME/.local/bin/micromamba run -n deepseek-onnx \
 - `Prefill_8K`：恰好两张表：整网资源汇总，以及按典型层/模块拆分的明细；两张表均横向列出 TP1/TP8 每 Rank 容量、算力、集合通信数据量、参数类型和激活类型。
 - `Decode_1M`：恰好两张表：整网资源汇总，以及按典型层/模块拆分的明细；两张表均横向列出 TP1/TP8 每 Rank 容量、算力、集合通信数据量、参数类型和激活类型。
 - 场景分类：Attention、MoE、Embedding、LM Head、Norm、HC、residual；典型明细进一步拆分 Window/Short/Long 注意力、压缩器、Indexer、专家和缓存状态。
-- `dtype`：各种算子和张量的参数存储、激活/中间计算类型，以及 43 层逐层 dtype 与 Attention / Router 模式总表。
+- `dtype`：各种算子和张量的参数存储、Scale 类型、激活/中间计算类型，以及 43 层逐层 dtype 与 Attention / Router 模式总表。
 - `Summary`：面向每 Rank 配置的单次推理计算量、通信量、容量和参数量总览。
-- `Comparison`：一张统一的 TP1/TP8 资源对比表、总容量表和七张图；静态参数容量与推理常驻容量分别按 Prefill/Decode 展示；一次推理的总 FLOPs 与单位显示在同一数量单元格中。
+- `Comparison`：一张统一的 TP1/TP8 资源对比表和九张图；容量图按 Attention 静态参数、MoE 静态参数和当前场景有效 KV cache 分组，并分别展示 Prefill/Decode 的 TP1 与 TP8；通信量使用汇总柱状图；一次推理的总 FLOPs 与单位显示在同一数量单元格中。
 - `Layer_Config`：逐层调整 `window`、`short`、`long` 模式。
 - `Methodology`：中文统计口径与限制。
 
